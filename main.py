@@ -13,7 +13,7 @@ if platform == 'android':
         from android.permissions import request_permissions, Permission
         check_permission  # pylint: disable=import-error # type: ignore
         request_permissions([Permission.READ_EXTERNAL_STORAGE,
-                        Permission.WRITE_EXTERNAL_STORAGE])
+                        Permission.WRITE_EXTERNAL_STORAGE, Permission.INTERNET])
     except ImportError:
         request_permissions = None
         Permission = None
