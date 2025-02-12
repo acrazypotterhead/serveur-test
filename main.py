@@ -14,17 +14,17 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER = "192.168.56.1"
 ADDR = (SERVER, PORT)
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(ADDR)
+#client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#client.connect(ADDR)
 
-def send(msg):
-    message = msg.encode(FORMAT)
-    msg_length = len(message)
-    send_length = str(msg_length).encode(FORMAT)
-    send_length += b" " * (HEADER - len(send_length))
-    client.send(send_length)
-    client.send(message)
-    print(client.recv(2048).decode(FORMAT))
+#def send(msg):
+#    message = msg.encode(FORMAT)
+#    msg_length = len(message)
+#    send_length = str(msg_length).encode(FORMAT)
+#    send_length += b" " * (HEADER - len(send_length))
+#    client.send(send_length)
+#    client.send(message)
+#    print(client.recv(2048).decode(FORMAT))
     
 class ClientApp(App):
     def build(self):
@@ -32,7 +32,7 @@ class ClientApp(App):
         self.label = Label(text="Enter a message:")
         self.input = TextInput()
         self.button = Button(text="Send")
-        self.button.bind(on_press=self.send_message)
+        #self.button.bind(on_press=self.send_message)
         layout.add_widget(self.label)
         layout.add_widget(self.input)
         layout.add_widget(self.button)
