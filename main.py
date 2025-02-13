@@ -7,6 +7,9 @@ from kivy.utils import platform
 import socket
 import threading
 
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 if platform == 'android':
     from android.permissions import request_permissions, Permission
 
