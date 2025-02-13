@@ -21,7 +21,7 @@ HEADER = 64
 PORT = 5050
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
-SERVER = "192.168.137.159"  # Vérifie bien que cette IP est correcte
+SERVER = "192.168.137.62"  # Vérifie bien que cette IP est correcte
 ADDR = (SERVER, PORT)
 
 class ClientApp(App):
