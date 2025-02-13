@@ -14,7 +14,7 @@ if platform == 'android':
         request_permissions([
             Permission.READ_EXTERNAL_STORAGE,
             Permission.WRITE_EXTERNAL_STORAGE,
-            Permission.RECORD_AUDIO  # Ajout d'une permission souvent nécessaire pour l'audio
+            Permission.INTERNET
         ])
 
 HEADER = 64
