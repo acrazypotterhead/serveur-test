@@ -15,8 +15,6 @@ if platform == 'android':
 
     def request_android_permissions():
         request_permissions([
-            Permission.READ_EXTERNAL_STORAGE,
-            Permission.WRITE_EXTERNAL_STORAGE,
             Permission.INTERNET
         ])
 
@@ -24,13 +22,14 @@ HEADER = 64
 PORT = 5050
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
-SERVER = "192.168.137.62"  # Vérifie bien que cette IP est correcte
+SERVER = "192.168.137.149"  # Vérifie bien que cette IP est correcte
 ADDR = (SERVER, PORT)
 
 class ClientApp(App):
     def build(self):
         if platform == 'android':
             request_android_permissions()
+            self.text = Label(request_android_permissions)
         
         layout = GridLayout(cols=1)
         self.label = Label(text="Enter a message:")
