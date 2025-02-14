@@ -29,7 +29,7 @@ class ClientApp(App):
     def build(self):
         if platform == 'android':
             request_android_permissions()
-            self.text = Label(request_android_permissions)
+            #self.text = Label(request_android_permissions)
         
         layout = GridLayout(cols=1)
         self.label = Label(text="Enter a message:")
