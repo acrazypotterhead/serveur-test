@@ -114,7 +114,7 @@ android.permissions = INTERNET #, (name=android.permission.WRITE_EXTERNAL_STORAG
 
 # (int) Android NDK API to use. This is the minimum API your app will support, it should usually match android.minapi.
 #android.ndk_api = 21
-
+android.ndk_build_flags = -g
 # (bool) Use --private data storage (True) or --dir public storage (False)
 #android.private_storage = True
 
@@ -309,7 +309,7 @@ android.allow_backup = True
 
 # (str) The format used to package the app for debug mode (apk or aar).
 # android.debug_artifact = apk
-
+android.debuggable = 1
 #
 # Python for android (p4a) specific
 #
