@@ -1,6 +1,6 @@
 import socket
 import threading
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 
 
@@ -20,7 +20,7 @@ x_arr, y_arr, z_arr = [], [], []
 def handle_client(conn, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
     connected = True
-    fig = plt.figure()
+    #fig = plt.figure()
     str = ""
     while connected:
         msg_length = conn.recv(HEADER).decode(FORMAT)

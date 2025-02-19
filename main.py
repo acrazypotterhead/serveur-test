@@ -6,6 +6,7 @@ from kivy.uix.textinput import TextInput
 from kivy.utils import platform
 import socket
 import threading
+import time
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -22,8 +23,11 @@ HEADER = 64
 PORT = 5050
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
-SERVER = "192.168.137.248"  # Vérifie bien que cette IP est correcte
-ADDR = (SERVER, PORT)
+#SERVER = "192.168.137.248"  # Vérifie bien que cette IP est correcte
+#ADDR = (SERVER, PORT)
+serveur_ip = ""
+
+
 
 class ClientApp(App):
     def build(self):
@@ -32,24 +36,44 @@ class ClientApp(App):
             #self.text = Label(request_android_permissions)
         
         layout = GridLayout(cols=1)
-        self.label = Label(text="Enter a message:")
-        self.input = TextInput()
+        self.label_ip = Label(text="Enter server IP:")
+        self.input_ip = TextInput()
+        self.button_ip = Button(text="Connect")
+        
+      
+        self.button_ip.bind(on_press=self.set_server_ip)
+
+        self.label_msg = Label(text="Enter a message:")
+        self.input_msg = TextInput()
         self.button = Button(text="Send")
         self.button.bind(on_press=self.send_message)
         
-        layout.add_widget(self.label)
-        layout.add_widget(self.input)
+        layout.add_widget(self.label_ip)
+        layout.add_widget(self.input_ip)
+        layout.add_widget(self.button_ip)
+        layout.add_widget(self.label_msg)
+        layout.add_widget(self.input_msg)
         layout.add_widget(self.button)
+        
         return layout
     
-    def connect_to_server(self):
-        try:
-            self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.client.connect(ADDR)
-            print("[CONNECTED] Successfully connected to the server")
-        except Exception as e:
-            print(f"[ERROR] Could not connect to server: {e}")
-            self.client = None
+    def set_server_ip(self, instance):
+        self.serveur_ip = self.input_ip.text  # Store the server IP in an instance variable
+        print(f"Server IP set to: {self.serveur_ip}")
+        # Start the connection in a new thread to avoid blocking the UI
+        threading.Thread(target=self.connect_to_server, args=(self.serveur_ip,)).start()
+    
+    def connect_to_server(self, serveur_ip):
+        while True:
+            try:
+                self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.client.connect((serveur_ip, PORT))
+                print("[CONNECTED] Successfully connected to the server")
+                break
+            except Exception as e:
+                print(f"[ERROR] Could not connect to server: {e}")
+                self.client = None
+                time.sleep(5)
 
     def send(self, msg):
         if self.client:
@@ -65,9 +89,7 @@ class ClientApp(App):
                 print(f"[ERROR] Failed to send message: {e}")
 
     def send_message(self, instance):
-        self.send(self.input.text)
-
-    def on_start(self):
-        threading.Thread(target=self.connect_to_server, daemon=True).start()
+        message = self.input_msg.text  # Get the message from the input
+        self.send(message)
 
 ClientApp().run()
