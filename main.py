@@ -7,6 +7,7 @@ from kivy.utils import platform
 import socket
 import threading
 import time
+from plyer import gyroscope
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -47,6 +48,11 @@ class ClientApp(App):
         self.input_msg = TextInput()
         self.button = Button(text="Send")
         self.button.bind(on_press=self.send_message)
+
+        self.button_gyro = Button(text="Gyroscope")
+        self.button_gyro.bind(on_press=self.start_gyroscope)
+        
+
         
         layout.add_widget(self.label_ip)
         layout.add_widget(self.input_ip)
@@ -54,14 +60,25 @@ class ClientApp(App):
         layout.add_widget(self.label_msg)
         layout.add_widget(self.input_msg)
         layout.add_widget(self.button)
+        layout.add_widget(self.button_gyro)
+
+
         
         return layout
     
+    def start_gyroscope(self, instance):
+        threading.Thread(target=self.collect_gyroscope_data).start()
+
+    
+
+
     def set_server_ip(self, instance):
         self.serveur_ip = self.input_ip.text  # Store the server IP in an instance variable
         print(f"Server IP set to: {self.serveur_ip}")
         # Start the connection in a new thread to avoid blocking the UI
         threading.Thread(target=self.connect_to_server, args=(self.serveur_ip,)).start()
+
+
     
     def connect_to_server(self, serveur_ip):
         while True:
@@ -91,5 +108,23 @@ class ClientApp(App):
     def send_message(self, instance):
         message = self.input_msg.text  # Get the message from the input
         self.send(message)
+
+
+    def collect_gyroscope_data(self):
+        while True:
+            try:
+                if gyroscope.is_available():
+                    gyroscope.enable()
+                    time.sleep(1)  # Wait for the sensor to initialize
+                    data = gyroscope.rotation
+                    if data:
+                        x, y, z = data
+                        gyroscope_data = f"Gyroscope data - x: {x}, y: {y}, z: {z}"
+                        print(gyroscope_data)
+                        self.send(gyroscope_data)
+                    gyroscope.disable()
+                time.sleep(1)  # Collect data every second
+            except Exception as e:
+                print(f"[ERROR] Failed to collect gyroscope data: {e}")
 
 ClientApp().run()
