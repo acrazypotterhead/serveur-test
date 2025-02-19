@@ -121,7 +121,8 @@ class ClientApp(App):
                         x, y, z = data
                         gyroscope_data = f"Gyroscope data - x: {x}, y: {y}, z: {z}"
                         print(gyroscope_data)
-                        self.send(gyroscope_data)
+                        self.client.send(gyroscope_data)
+                        print(self.client.recv(2048).decode(FORMAT))
                     gyroscope.disable()
                 time.sleep(1)  # Collect data every second
             except Exception as e:
