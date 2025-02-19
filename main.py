@@ -7,7 +7,7 @@ from kivy.utils import platform
 import socket
 import threading
 import time
-from plyer import gyroscope
+from plyer import accelerometer
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -67,7 +67,7 @@ class ClientApp(App):
         return layout
     
     def start_gyroscope(self, instance):
-        threading.Thread(target=self.collect_gyroscope_data).start()
+        threading.Thread(target=self.collect_accelerometer_data).start()
 
     
 
@@ -110,20 +110,20 @@ class ClientApp(App):
         self.send(message)
 
 
-    def collect_gyroscope_data(self):
+    def collect_accelerometer_data(self):
         while True:
             try:
-                if gyroscope.is_available():
-                    gyroscope.enable()
+                if accelerometer.is_available():
+                    accelerometer.enable()
                     time.sleep(1)  # Wait for the sensor to initialize
-                    data = gyroscope.rotation
+                    data = accelerometer.acceleration[:3]
                     if data:
                         x, y, z = data
-                        gyroscope_data = f"Gyroscope data - x: {x}, y: {y}, z: {z}"
-                        print(gyroscope_data)
-                        self.client.send(gyroscope_data)
-                        print(self.client.recv(2048).decode(FORMAT))
-                    gyroscope.disable()
+                        accelerometer_data = f"Gyroscope data - x: {x}, y: {y}, z: {z}"
+                        print(accelerometer_data)
+                        self.send(accelerometer_data)
+                        
+                    accelerometer.disable()
                 time.sleep(1)  # Collect data every second
             except Exception as e:
                 print(f"[ERROR] Failed to collect gyroscope data: {e}")
