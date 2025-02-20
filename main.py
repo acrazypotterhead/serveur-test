@@ -117,7 +117,7 @@ class ClientApp(App):
             try:
                 accelerometer.enable()
                 print(accelerometer.acceleration)
-                self.sensorEnabled = True
+                self.sensor = True
                 #self.ids.toggle_button.text = "Stop Accelerometer"
             except:
                 print("Accelerometer is not implemented for your platform")
@@ -134,7 +134,7 @@ class ClientApp(App):
             Clock.unschedule(self.get_acceleration)
     
             # Retour à l'état arrété
-            self.sensorEnabled = False
+            self.sensor = False
             #self.ids.toggle_button.text = "Start Accelerometer"
 
         
