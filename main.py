@@ -116,9 +116,7 @@ class ClientApp(App):
         if not self.sensor:
             try:
                 accelerometer.enable()
-                print(accelerometer.acceleration)
                 self.sensor = True
-                #self.ids.toggle_button.text = "Stop Accelerometer"
             except:
                 print("Accelerometer is not implemented for your platform")
     
@@ -126,8 +124,6 @@ class ClientApp(App):
                 Clock.schedule_interval(self.collect_accelerometer_data, 1 / 20)
             else:
                 accelerometer.disable()
-                status = "Accelerometer is not implemented for your platform"
-                #self.ids.toggle_button.text = status
         else:
             # Stop de la capture
             accelerometer.disable()
@@ -135,20 +131,20 @@ class ClientApp(App):
     
             # Retour à l'état arrété
             self.sensor = False
-            #self.ids.toggle_button.text = "Start Accelerometer"
-
+            
         
     
 
-    def collect_accelerometer_data(self):
+    def collect_accelerometer_data(self, dt):
         
-        if self.sensor:
+        try:
             val = accelerometer.acceleration[:3]
-            val_x = val[0]
-            val_y = val[1]
-            val_z = val[2]
-
-            self.button_gyro.text = {val_x}
+            if val is not None:
+                val_x, val_y, val_z = val
+                self.button_gyro.text = f"x: {val_x:.2f}, y: {val_y:.2f}, z: {val_z:.2f}"
+                self.send(f"{val_x},{val_y},{val_z}")  # Envoie les données au serveur
+        except Exception as e:
+            print(f"[ERROR] Impossible de lire l'accéléromètre : {e}")
 
 
     
