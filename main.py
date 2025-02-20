@@ -148,7 +148,7 @@ class ClientApp(App):
             val_y = val[1]
             val_z = val[2]
 
-            self.send(val_x)
+            self.button_gyro.text = {val_x}
 
 
     
