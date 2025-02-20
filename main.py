@@ -8,6 +8,7 @@ import socket
 import threading
 import time
 from plyer import accelerometer
+from kivy.clock import Clock
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -34,7 +35,7 @@ class ClientApp(App):
     def build(self):
         if platform == 'android':
             request_android_permissions()
-            #self.text = Label(request_android_permissions)
+            
         
         layout = GridLayout(cols=1)
         self.label_ip = Label(text="Enter server IP:")
@@ -50,7 +51,7 @@ class ClientApp(App):
         self.button.bind(on_press=self.send_message)
 
         self.button_gyro = Button(text="Gyroscope")
-        self.button_gyro.bind(on_press=self.start_gyroscope)
+        self.button_gyro.bind(on_press=self.do_toggle)
         
 
         
@@ -109,23 +110,64 @@ class ClientApp(App):
         message = self.input_msg.text  # Get the message from the input
         self.send(message)
 
+    sensor = False
+
+    def do_toggle(self):   
+        if not self.sensorEnabled:
+            try:
+                accelerometer.enable()
+                print(accelerometer.acceleration)
+                self.sensorEnabled = True
+                self.ids.toggle_button.text = "Stop Accelerometer"
+            except:
+                print("Accelerometer is not implemented for your platform")
+    
+            if self.sensorEnabled:
+                Clock.schedule_interval(self.collect_accelerometer_data, 1 / 20)
+            else:
+                accelerometer.disable()
+                status = "Accelerometer is not implemented for your platform"
+                self.ids.toggle_button.text = status
+        else:
+            # Stop de la capture
+            accelerometer.disable()
+            Clock.unschedule(self.get_acceleration)
+    
+            # Retour à l'état arrété
+            self.sensorEnabled = False
+            self.ids.toggle_button.text = "Start Accelerometer"
+
+        
+    
 
     def collect_accelerometer_data(self):
-        while True:
-            try:
-                if accelerometer.is_available():
-                    accelerometer.enable()
-                    time.sleep(1)  # Wait for the sensor to initialize
-                    data = accelerometer.acceleration[:3]
-                    if data:
-                        x, y, z = data
-                        accelerometer_data = f"Gyroscope data - x: {x}, y: {y}, z: {z}"
-                        print(accelerometer_data)
-                        self.send(accelerometer_data)
-                        
-                    accelerometer.disable()
-                time.sleep(1)  # Collect data every second
-            except Exception as e:
-                print(f"[ERROR] Failed to collect gyroscope data: {e}")
+        
+        if self.sensor:
+            val = accelerometer.acceleration[:3]
+            val_x = val[0]
+            val_y = val[1]
+            val_z = val[2]
+
+            self.send(f"Accelerometer data - x: {val_x}, y: {val_y}, z: {val_z}")
+
+
+    
+        
+        #while True:
+        #    try:
+        #        if accelerometer.is_available():
+        #            accelerometer.enable()
+        #            time.sleep(1)  # Wait for the sensor to initialize
+        #            data = accelerometer.acceleration[:3]
+        #            if data:
+        #                x, y, z = data
+        #                accelerometer_data = f"Gyroscope data - x: {x}, y: {y}, z: {z}"
+        #                print(accelerometer_data)
+        #                self.send(accelerometer_data)
+        #                
+        #            accelerometer.disable()
+        #        time.sleep(1)  # Collect data every second
+        #    except Exception as e:
+        #        print(f"[ERROR] Failed to collect gyroscope data: {e}")
 
 ClientApp().run()
