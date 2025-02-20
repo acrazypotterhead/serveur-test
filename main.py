@@ -51,7 +51,7 @@ class ClientApp(App):
         self.button.bind(on_press=self.send_message)
 
         self.button_gyro = Button(text="Gyroscope")
-        self.button_gyro.bind(on_press=self.do_toggle())
+        self.button_gyro.bind(on_press=self.do_toggle)
         
 
         
@@ -112,7 +112,7 @@ class ClientApp(App):
 
     sensor = False
 
-    def do_toggle(self):   
+    def do_toggle(self, *_args):   
         if not self.sensor:
             try:
                 accelerometer.enable()
