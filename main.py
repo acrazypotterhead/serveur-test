@@ -51,7 +51,7 @@ class ClientApp(App):
         self.button.bind(on_press=self.send_message)
 
         self.button_gyro = Button(text="Gyroscope")
-        self.button_gyro.bind(on_press=self.do_toggle)
+        self.button_gyro.bind(on_press=self.do_toggle())
         
 
         
@@ -113,7 +113,7 @@ class ClientApp(App):
     sensor = False
 
     def do_toggle(self):   
-        if not self.sensorEnabled:
+        if not self.sensor:
             try:
                 accelerometer.enable()
                 print(accelerometer.acceleration)
@@ -122,7 +122,7 @@ class ClientApp(App):
             except:
                 print("Accelerometer is not implemented for your platform")
     
-            if self.sensorEnabled:
+            if self.sensor:
                 Clock.schedule_interval(self.collect_accelerometer_data, 1 / 20)
             else:
                 accelerometer.disable()
