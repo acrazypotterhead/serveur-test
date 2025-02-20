@@ -148,7 +148,7 @@ class ClientApp(App):
             val_y = val[1]
             val_z = val[2]
 
-            self.send(f"Accelerometer data - x: {val_x}, y: {val_y}, z: {val_z}")
+            self.send(val_x)
 
 
     
