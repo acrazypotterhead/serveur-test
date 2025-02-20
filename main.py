@@ -118,7 +118,7 @@ class ClientApp(App):
                 accelerometer.enable()
                 print(accelerometer.acceleration)
                 self.sensorEnabled = True
-                self.ids.toggle_button.text = "Stop Accelerometer"
+                #self.ids.toggle_button.text = "Stop Accelerometer"
             except:
                 print("Accelerometer is not implemented for your platform")
     
@@ -127,7 +127,7 @@ class ClientApp(App):
             else:
                 accelerometer.disable()
                 status = "Accelerometer is not implemented for your platform"
-                self.ids.toggle_button.text = status
+                #self.ids.toggle_button.text = status
         else:
             # Stop de la capture
             accelerometer.disable()
@@ -135,7 +135,7 @@ class ClientApp(App):
     
             # Retour à l'état arrété
             self.sensorEnabled = False
-            self.ids.toggle_button.text = "Start Accelerometer"
+            #self.ids.toggle_button.text = "Start Accelerometer"
 
         
     
