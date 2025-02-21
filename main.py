@@ -9,6 +9,10 @@ import threading
 import time
 from plyer import accelerometer
 from kivy.clock import Clock
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.lang import Builder
+from widgets import Jauge 
+from kivy.core.window import Window
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -20,6 +24,10 @@ if platform == 'android':
         request_permissions([
             Permission.INTERNET
         ])
+Window.clearcolor = (255/255, 233/255, 204/255)
+Builder.load_file('jauge.kv')
+
+
 
 HEADER = 64
 PORT = 5050
@@ -31,41 +39,8 @@ serveur_ip = ""
 
 
 
-class ClientApp(App):
-    def build(self):
-        if platform == 'android':
-            request_android_permissions()
-            
-        
-        layout = GridLayout(cols=1)
-        self.label_ip = Label(text="Enter server IP:")
-        self.input_ip = TextInput()
-        self.button_ip = Button(text="Connect")
-        
-      
-        self.button_ip.bind(on_press=self.set_server_ip)
 
-        self.label_msg = Label(text="Enter a message:")
-        self.input_msg = TextInput()
-        self.button = Button(text="Send")
-        self.button.bind(on_press=self.send_message)
-
-        self.button_gyro = Button(text="Gyroscope")
-        self.button_gyro.bind(on_press=self.do_toggle)
-        
-
-        
-        layout.add_widget(self.label_ip)
-        layout.add_widget(self.input_ip)
-        layout.add_widget(self.button_ip)
-        layout.add_widget(self.label_msg)
-        layout.add_widget(self.input_msg)
-        layout.add_widget(self.button)
-        layout.add_widget(self.button_gyro)
-
-
-        
-        return layout
+class FirstWindow(Screen):
     
     def start_gyroscope(self, instance):
         threading.Thread(target=self.collect_accelerometer_data).start()
@@ -165,5 +140,16 @@ class ClientApp(App):
         #        time.sleep(1)  # Collect data every second
         #    except Exception as e:
         #        print(f"[ERROR] Failed to collect gyroscope data: {e}")
+
+
+class SecondWindow(Screen):
+    pass
+
+class WindowManager(ScreenManager):
+    pass
+
+class ClientApp(App):
+    def build(self):
+        return Builder.load_file("interface_client.kv")
 
 ClientApp().run()

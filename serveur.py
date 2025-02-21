@@ -1,13 +1,13 @@
 import socket
 import threading
-#import matplotlib.pyplot as plt
-
-
-
+from kivy.app import App
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.clock import Clock
+from kivy.lang import Builder
 
 HEADER = 64
 PORT = 5050
-SERVER = "192.168.5.27" #socket.gethostbyname(socket.gethostname())
+SERVER = "192.168.5.27"  # Vérifie bien cette adresse IP
 ADDR = (SERVER, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
@@ -15,42 +15,64 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 
-x_arr, y_arr, z_arr = [], [], []
 
-def handle_client(conn, addr):
-    print(f"[NEW CONNECTION] {addr} connected.")
-    connected = True
-    #fig = plt.figure()
-    str = ""
-    while connected:
-        msg_length = conn.recv(HEADER).decode(FORMAT)
+class FirstWindow(Screen):
+    def update_status(self, status):
+        Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
 
-        if msg_length:
-            msg_length = int(msg_length)
-            msg = conn.recv(msg_length).decode(FORMAT)
-            str += msg
-            if msg == DISCONNECT_MESSAGE:
+    def update_messages(self, message):
+        Clock.schedule_once(lambda dt: self.ids.messages.setter('text')(self.ids.messages, self.ids.messages.text + message + "\n"))
+
+    def handle_client(self, conn, addr):
+        self.update_status(f"[NEW CONNECTION] {addr} connected.")
+        connected = True
+        while connected:
+            try:
+                msg_length = conn.recv(HEADER).decode(FORMAT)
+                if msg_length:
+                    msg_length = int(msg_length)
+                    msg = conn.recv(msg_length).decode(FORMAT)
+                    if msg == DISCONNECT_MESSAGE:
+                        connected = False
+                        self.update_status(f"Device {addr} disconnected.")
+                    self.update_messages(f"[{addr}] {msg}")
+                    conn.send("Message received".encode(FORMAT))
+            except:
                 connected = False
-                print(f"msg = {str}")
-                print(f"Device {addr} disconnected.")
+        conn.close()
 
-            print(f"[{addr}] {msg}")
-            conn.send("Message received".encode(FORMAT))
+    def start_server(self):
+        server.listen()
+        self.update_status(f"[LISTENING] Server is listening on {SERVER}")
+        while True:
+            try:
+                conn, addr = server.accept()
+                thread = threading.Thread(target=self.handle_client, args=(conn, addr), daemon=True)
+                thread.start()
+                self.update_status(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+            except:
+                break
 
-    conn.close()
+    def stop_server(self):
+        server.close()
+        self.update_status("[STOPPED] Server has stopped.")
 
-def start():
-    server.listen()
-    print(f"[LISTENING] Server is listening on {SERVER}")
-    while True:
-        conn, addr = server.accept()
-        thread = threading.Thread(target=handle_client, args=(conn, addr))
-        thread.start()
-        print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+    def on_enter(self):
+        threading.Thread(target=self.start_server, daemon=True).start()
 
 
+class SecondWindow(Screen):
+    pass
 
-print("[STARTING] server is starting...")
-start()
+
+class WindowManager(ScreenManager):
+    pass
 
 
+class ServerApp(App):
+    def build(self):
+        return Builder.load_file("interface_serveur.kv")
+
+
+if __name__ == "__main__":
+    ServerApp().run()

@@ -1,18 +1,22 @@
 from kivy.app import App
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy_garden.matplotlib import FigureCanvasKivyAgg
+import matplotlib.pyplot as plt
 
-
-class StartApp(Screen):
-    def __init__(self, **kwargs):
-        super(StartApp, self).__init__(**kwargs)
-
-class WindowManager(ScreenManager):
-    pass
-
-class TestApp(App):
+class MatplotlibApp(App):
     def build(self):
-        return WindowManager()
-    
-TestApp().run()
-    
-    
+        layout = BoxLayout(orientation='vertical')
+        
+        # Créer une figure matplotlib
+        fig, ax = plt.subplots()
+        ax.plot([1, 2, 3], [4, 5, 6])
+        
+        # Ajouter la figure à Kivy
+        canvas = FigureCanvasKivyAgg(fig)
+        layout.add_widget(canvas)
+        
+        return layout
+
+if __name__ == "__main__":
+    MatplotlibApp().run()
+

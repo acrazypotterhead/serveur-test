@@ -1,0 +1,40 @@
+WindowManager:
+    FirstWindow:
+    SecondWindow:
+
+<FirstWindow>:
+    name: 'first'
+    GridLayout:
+        cols: 1
+        Label:
+            id: status_label
+            text: "[STARTING] Server is starting..."
+
+        TextInput:
+            id: messages
+            readonly: True
+            size_hint_y: None
+            height: 400
+    
+        Button:
+            text: "Stop server"
+            on_press: root.stop_server()
+        
+        Button:
+            text: "Go to Second Window"
+            on_press:
+                root.manager.current = 'second'
+                root.manager.transition.direction = 'left'
+
+<SecondWindow>:
+    name: 'second'
+    GridLayout:
+        cols: 1
+        Label: 
+            text: "Second Window"
+
+        Button:
+            text: "Go to First Window"
+            on_press: 
+                root.manager.current = 'first'
+                root.manager.transition.direction = 'right'

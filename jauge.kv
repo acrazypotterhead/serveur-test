@@ -1,0 +1,134 @@
+<Jauge>:
+        
+    size_hint: None, None
+    size: root.size
+    #size: root.size_gauge, root.size_gauge
+
+    #Importation de l'image de la jauge
+    Image:
+        id: gauge
+        source: root.file_gauge
+        allow_stretch: True
+        size: root.size
+        pos: root.pos
+#
+    ##Dessin du marqueur de la jauge et du cercle blanc au centre
+    Widget:
+        id: marker
+        size_hint: None, None
+        size: root.size
+        pos: root.pos
+        canvas.before:
+            
+            # Marqueur
+            Color:
+                rgba: 1, 1, 1, 0.5
+            Ellipse: 
+                pos:(self.center_x - (min(self.size)) / 2 , self.center_y - (min(self.size)) / 2 )
+                size: min(self.size), min(self.size) 
+                angle_start: root.marker_startangle 
+                angle_end: root._angle if root._angle > root.marker_startangle else root.marker_startangle
+                source: root.file_background_color
+        canvas: 
+            
+            Color:
+                rgba: 255/255, 233/255, 204/255, 1 
+                
+            # Cercle blanc
+            Ellipse: 
+                
+                pos: (self.center_x - (min(self.size) *0.69) / 2  , self.center_y - (min(self.size) *0.69) / 2  )
+                size: min(self.size)*0.69, min(self.size)*0.69
+#
+    
+    # Importation de l'image de l'aiguille
+
+    Image:
+        id: needle
+        source: root.file_needle
+        size: root.size
+        allow_stretch: True
+        keep_ratio: True
+        pos: root.pos
+        canvas.before:
+            PushMatrix
+            Rotate:
+                angle: - (root._angle if root._angle > root.marker_startangle else root.marker_startangle)
+                origin: self.center
+        canvas.after:
+            PopMatrix
+
+    
+    # Importation de l'image du marqueur de valeur max positive
+
+    Image:
+        id: value_positve_marker
+        source: root.file_value_marker_positive
+        size: root.size
+        allow_stretch: True
+        pos: root.pos
+        canvas.before:
+            PushMatrix
+            Rotate:
+                angle: - (root.angle_max_positive_value if root.angle_max_positive_value > root.marker_startangle else root.marker_startangle)
+                origin: self.center
+        canvas.after:
+            PopMatrix
+
+    # Importation de l'image du marqueur de valeur max negative
+    Image:
+        id: value_negative_marker
+        source: root.file_value_marker_negative
+        size: root.size
+        allow_stretch: True
+        pos: root.pos
+        canvas.before:
+            PushMatrix
+            Rotate:
+                angle: - (root.angle_max_negative_value if root.angle_max_negative_value > root.marker_startangle else root.marker_startangle)
+                origin: self.center
+        canvas.after:
+            PopMatrix
+    
+
+    # Affichage de la valeur positive max de la jauge
+    Label:
+        id: value_max
+        text: str(root.max_positive_value_encountered)
+        pos: (root.pos[0] + root.width - self.width, root.pos[1])
+        color: 1, 0, 0, 1
+        font_size: 20
+
+    # Affichage de la valeur negative max de la jauge
+    Label:
+        id: value_min
+        text: str(root.max_negative_value_encountered)
+        pos: root.pos[0] , root.pos[1] 
+        color: 0, 0, 1, 1
+        font_size: 20
+
+
+    # Bouton pour réinitialiser la valeur max
+    Button:
+        id: button_reset_marker
+        size_hint: None, None
+        width: 180
+        height: 70
+        center: root.center
+        background_color: 1,1,1,0
+        on_press: root.reset_max_positive_value()
+        on_release: root.reset_max_negative_value()
+        on_press: root.change_segments_color_on()
+        on_release: root.change_segments_color_off()
+ 
+
+    #Affichage de la valeur de la jauge avec des 7 segments
+    BoxLayout:
+        id: segments_box
+        orientation: 'horizontal'
+        size_hint: None, None
+        
+        size:  (root.segment_scale * 180)/0.2, (root.segment_scale * 30)/0.2 
+        center: root.center[0] + 20, root.center[1] 
+        spacing: 0
+        padding: [0, 0, 0, 0]
