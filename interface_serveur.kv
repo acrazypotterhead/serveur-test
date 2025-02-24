@@ -15,6 +15,11 @@ WindowManager:
             readonly: True
             size_hint_y: None
             height: 400
+
+        BoxLayout:
+            id: box
+            orientation: 'vertical'
+            size: root.width, root.height
     
         Button:
             text: "Stop server"

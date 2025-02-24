@@ -118,7 +118,7 @@ class FirstWindow(Screen):
             if val is not None:
                 val_x, val_y, val_z = val
                 self.ids.button_gyro.text = f"x: {val_x:.2f}, y: {val_y:.2f}, z: {val_z:.2f}"
-                self.send(f"{val_x},{val_y},{val_z}")  # Envoie les données au serveur
+                self.send(f"{val_x:.0f},{val_y:.0f},{val_z:.0f}")  # Envoie les données au serveur
         except Exception as e:
             print(f"[ERROR] Impossible de lire l'accéléromètre : {e}")
 

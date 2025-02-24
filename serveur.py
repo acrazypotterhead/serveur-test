@@ -4,6 +4,9 @@ from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.clock import Clock
 from kivy.lang import Builder
+from kivy_garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+import matplotlib.pyplot as plt
+
 
 HEADER = 64
 PORT = 5050
@@ -15,6 +18,10 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 
+x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+x , y , z = [], [], []
+plt.ion
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(5, 10))
 
 class FirstWindow(Screen):
     def update_status(self, status):
