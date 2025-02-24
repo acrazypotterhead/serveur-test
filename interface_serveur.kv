@@ -9,27 +9,34 @@ WindowManager:
         Label:
             id: status_label
             text: "[STARTING] Server is starting..."
+            size_hint_y: None
+            height: 50
 
         TextInput:
             id: messages
             readonly: True
             size_hint_y: None
-            height: 400
+            height: 50
 
         BoxLayout:
-            id: box
+            id: box_graph
             orientation: 'vertical'
             size: root.width, root.height
     
         Button:
             text: "Stop server"
             on_press: root.stop_server()
+            size_hint_y: None
+            height: 50
         
         Button:
             text: "Go to Second Window"
+            size_hint_y: None
+            height: 50
             on_press:
                 root.manager.current = 'second'
                 root.manager.transition.direction = 'left'
+                
 
 <SecondWindow>:
     name: 'second'
