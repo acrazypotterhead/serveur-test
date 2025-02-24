@@ -82,8 +82,8 @@ class FirstWindow(Screen):
             except Exception as e:
                 print(f"[ERROR] Failed to send message: {e}")
 
-    def send_message(self, instance):
-        message = self.input_msg.text  # Get the message from the input
+    def send_message(self):
+        message = self.ids.message.text  # Get the message from the input
         self.send(message)
 
     sensor = False
