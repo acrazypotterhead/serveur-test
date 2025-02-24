@@ -48,8 +48,8 @@ class FirstWindow(Screen):
     
 
 
-    def set_server_ip(self, instance):
-        self.serveur_ip = self.input_ip.text  # Store the server IP in an instance variable
+    def set_server_ip(self):
+        self.serveur_ip = self.ids.ip.text  # Store the server IP in an instance variable
         print(f"Server IP set to: {self.serveur_ip}")
         # Start the connection in a new thread to avoid blocking the UI
         threading.Thread(target=self.connect_to_server, args=(self.serveur_ip,)).start()
@@ -61,12 +61,12 @@ class FirstWindow(Screen):
             try:
                 self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.client.connect((serveur_ip, PORT))
-                print("[CONNECTED] Successfully connected to the server")
+                self.ids.label_ip.text = f"Connected to {serveur_ip}"
                 break
             except Exception as e:
-                print(f"[ERROR] Could not connect to server: {e}")
+                self.ids.label_ip.text = f"[ERROR] Could not connect to server: {e}, please try again with another IP adress"
                 self.client = None
-                time.sleep(5)
+                break
 
     def send(self, msg):
         if self.client:
