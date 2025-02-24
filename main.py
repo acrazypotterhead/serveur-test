@@ -64,13 +64,14 @@ class FirstWindow(Screen):
                 self.ids.label_ip.text = f"Connected to {serveur_ip}"
                 break
             except Exception as e:
-                self.ids.label_ip.text = f"[ERROR] Could not connect to server: {e}, please try again with another IP adress"
+                self.ids.label_ip.text = f"[ERROR] Could not connect to server: {e}"
                 self.client = None
                 break
 
-    def send(self, msg):
+    def send(self):
         if self.client:
             try:
+                msg = self.ids.message.text
                 message = msg.encode(FORMAT)
                 msg_length = len(message)
                 send_length = str(msg_length).encode(FORMAT)
