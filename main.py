@@ -68,10 +68,10 @@ class FirstWindow(Screen):
                 self.client = None
                 break
 
-    def send(self):
+    def send(self, msg):
         if self.client:
             try:
-                msg = self.ids.message.text
+                
                 message = msg.encode(FORMAT)
                 msg_length = len(message)
                 send_length = str(msg_length).encode(FORMAT)
