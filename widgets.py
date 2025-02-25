@@ -6,56 +6,62 @@ from kivy.utils import get_color_from_hex
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.clock import Clock
 from plyer import accelerometer
+from kivy.graphics import Ellipse
 
 class Jauge(Widget):
-    
+
+    # __Valeurs à changer__ 
 
     #Bornes de la jauge
-    min_slidder = NumericProperty(-20)
-    max_slidder = NumericProperty(20)
+    min_value = NumericProperty()
+    max_value = NumericProperty()
 
     # unit correspond aux degrés de rotation de l'aiguille divisé par 100 
     # par exemple, pour une rotation de 180°, unit = 1.8 (rotation symetrique sur l'axe des ordonnées)
-    unit = BoundedNumericProperty(2.8, min=1.8, max=3.6, errorvalue=1.8)
+    unit = BoundedNumericProperty(3.6, min=1.8, max=3.6, errorvalue=1.8) 
 
     # Angle de rotation de l'aiguille, a initialiser à la même valeur que marker_startangle
     _angle = NumericProperty(-180)  
 
-    # Angles de départ de l'aiguille et du marqueur
-    marker_startangle = NumericProperty()
-    needle_start_angle = NumericProperty(90)
+    # Pourcentage du rayon de la jauge pour dessiner le cercle au milieu
+    rayon_center = NumericProperty(1)
+    # Pourcentage du rayon de la jauge pour dessiner le marqueur autour de la jauge
+    rayon_marker = NumericProperty(1)
 
-    # Taille du cercle central
-    size_center = NumericProperty(217)
+    # Importation des images
+    file_gauge = StringProperty("images/cadran 2.png")
+    file_needle = StringProperty("images/aiguille 1.png")
+    #file_marker = StringProperty("images/marker.png")
+    file_background_color = StringProperty("images/fond 2.png")
+    file_value_marker_positive = StringProperty("images/trait_rouge.png")
+    file_value_marker_negative = StringProperty("images/trait_bleu.png")
+    file_center = StringProperty("images/centre 2.png")
+
+    # Taille et couleur des segments 
+    segment_color = StringProperty('112689')
+    segment_color_on_hold = StringProperty('FF0000')
+    segment_scale = NumericProperty(0.3)
+
+    # __Valeur d'initialisation de la jauge__
+
+    # Angles de départ de l'aiguille et du marqueur, ils sont calculer en fonction de la valeur de l'unit dans def __init__
+    marker_startangle = NumericProperty()
+    needle_start_angle = NumericProperty()
 
     # Valeur de la jauge
     value = NumericProperty()
-    path = __file__
 
-    # Importation des images
-    file_gauge = StringProperty("images/cadran 1.png")
-    file_needle = StringProperty("images/aiguille 1.png")
-    file_marker = StringProperty("images/marker.png")
-    file_background_color = StringProperty("images/couleur1.jpg")
-    file_value_marker_positive = StringProperty("images/trait_rouge.png")
-    file_value_marker_negative = StringProperty("images/trait_bleu.png")
-
-    # Couleur et opacité de l'image de l'aiguille
-    marker_color = ListProperty([1, 1, 1, 1])
-
-    # Valeur maximale rencontrée
+    # Valeur maximale rencontrée (postive et négative)
     max_positive_value_encountered = NumericProperty()
     angle_max_positive_value = NumericProperty()
     max_negative_value_encountered = NumericProperty()
     angle_max_negative_value = NumericProperty()
  
-
-    # Taille et couleur des segments
-    segment_color = StringProperty('112689')
-    segment_color_on_hold = StringProperty('FF0000')
-    segment_scale = NumericProperty(0.3)
-    
+    # Choix de l'axe de rotation pour les valeurs de l'accéléromètre sur une jauge
     choice = StringProperty("")
+    
+    show_segment = BooleanProperty(True)
+
 
     def __init__(self, **kwargs):
         super(Jauge, self).__init__(**kwargs)
@@ -65,11 +71,14 @@ class Jauge(Widget):
         self.needle_start_angle = kwargs.get('needle_start_angle', self.unit * 100 / 2)
         self.sensorEnabled = False
 
+
+    
+
     # Méthode de rotation de l'aiguille
     def _turn(self, *args):
         
         # Calcul de l'angle de rotation de l'aiguille
-        self._angle = ((self.value - self.min_slidder)*(100/(self.max_slidder-self.min_slidder)) * self.unit)-50 * self.unit
+        self._angle = ((self.value - self.min_value)*(100/(self.max_value-self.min_value)) * self.unit)-50 * self.unit
     
 
         # Mise à jour de la valeur positive maximale rencontrée
@@ -88,7 +97,10 @@ class Jauge(Widget):
     def round_value(self, value):
         
         self.value = round(value, 2)  # Limiter la valeur à deux chiffres après la virgule
-        self.create_segments(self.value, self.segment_color)
+        if self.show_segment:
+            
+            self.create_segments(self.value, self.segment_color)
+        
 
 
     # Réinitialisation de la valeur maximale positive
@@ -155,9 +167,10 @@ class Jauge(Widget):
                 segment = Segment(scale=self.segment_scale, value=str(digit), color=base_color)
                 self.ids.segments_box.add_widget(segment)
                
-            segment = Segment(scale=self.segment_scale, value='.', color= base_color)
+            #segment = Segment(scale=self.segment_scale, value='.', color= base_color)
+            
 
-            self.ids.segments_box.add_widget(segment)
+            #self.ids.segments_box.add_widget(segment)
 
             for digit in decimal_digits:
                 segment = Segment(scale=self.segment_scale, value=str(digit), color= base_color)
@@ -207,16 +220,10 @@ class Jauge(Widget):
             if not val == (None, None, None):
                 if self.choice == "x":
                     self.value = val[0]
-                    self.value = round(self.value, 2)  # Limiter la valeur à deux chiffres après la virgule
-                    self.create_segments(self.value, self.segment_color)
                 elif self.choice == "y":
                     self.value = val[1]
-                    self.value = round(self.value, 2)  # Limiter la valeur à deux chiffres après la virgule
-                    self.create_segments(self.value, self.segment_color)
                 elif self.choice == "z":
                     self.value = val[2]
-                    self.value = round(self.value, 2)  # Limiter la valeur à deux chiffres après la virgule
-                    self.create_segments(self.value, self.segment_color)
                 
 
 
