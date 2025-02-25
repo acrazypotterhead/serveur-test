@@ -14,52 +14,44 @@ WindowManager:
         Label:
             id: label_ip
             text: 'Enter server IP :'
-            size_hint_y: None
-            height: 100
+            size_hint: 1, 0.4
     
             
 
         TextInput:
             id: ip
             multiline: False
-            size_hint_y: None
-            height: 200
+            size_hint: 1, 0.4
 
         Button:
             text: "Connect to server"
             on_press: root.set_server_ip()
-            size_hint_y: None
-            height: 50
+            size_hint: 1, 0.2
 
         Label:
             id: label_msg
             text: 'Enter message:'
-            size_hint_y: None
-            height: 100
+            size_hint: 1, 0.4
 
         TextInput:
             id: message
             multiline: False
-            size_hint_y: None
-            height: 200
+            size_hint: 1, 0.4
 
         Button:
             text: "Send message"
             on_press: root.send_message()
-            size_hint_y: None
-            height: 50
+            size_hint: 1, 0.2
 
         Button:
             id: button_gyro
             text: 'Gyroscope'
             on_press: root.do_toggle()
-            size_hint_y: None
-            height: 50
+            size_hint: 1, 0.2
 
         Button:
             text: 'go to Second Window'
-            size_hint_y: None
-            height: 50
+            size_hint: 1, 0.2
            
             
             
