@@ -24,7 +24,9 @@ if platform == 'android':
         request_permissions([
             Permission.INTERNET
         ])
-Window.clearcolor = (255/255, 233/255, 204/255)
+
+Window.size = (360, 640)
+Window.clearcolor = (46/255, 46/255, 46/255)
 Builder.load_file('jauge.kv')
 
 

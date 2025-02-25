@@ -79,6 +79,7 @@ class FirstWindow(Screen):
                 if msg == DISCONNECT_MESSAGE:
                     connected = False
                     self.update_status(f"Device {addr} disconnected.")
+                
                 self.update_messages(f"[{addr}] {msg}")
                 conn.send("Message received".encode(FORMAT))
             except:

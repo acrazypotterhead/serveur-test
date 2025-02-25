@@ -7,10 +7,13 @@ WindowManager:
     name: 'first'
     GridLayout:
         cols: 1
+        padding: 20
+        spacing: 10
 
         Label:
             id: label_ip
-            text: 'Enter server IP:'
+            text: 'Enter server IP :'
+            
 
         TextInput:
             id: ip
@@ -19,6 +22,8 @@ WindowManager:
         Button:
             text: "Connect to server"
             on_press: root.set_server_ip()
+            size_hint_y: None
+            height: 50
 
         Label:
             id: label_msg
@@ -31,14 +36,23 @@ WindowManager:
         Button:
             text: "Send message"
             on_press: root.send_message()
+            size_hint_y: None
+            height: 50
 
         Button:
             id: button_gyro
             text: 'Gyroscope'
             on_press: root.do_toggle()
+            size_hint_y: None
+            height: 50
 
         Button:
             text: 'go to Second Window'
+            size_hint_y: None
+            height: 50
+           
+            
+            
             on_press:
                 root.manager.current = 'second'
                 root.manager.transition.direction = 'left'
@@ -47,16 +61,19 @@ WindowManager:
     name: 'second'
     GridLayout:
         size: root.size
-        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+        
         cols: 1
         rows: 3
-
+        padding: 20
+        spacing: 10
 
         Button:
             text: "Go to first window"
+            size_hint_y: None
+            height: 50
             on_press:
                 root.manager.current = 'first'
-                root.manager.transition.direction = 'left'
+                root.manager.transition.direction = 'right'
 
         #row_default_height: 300  # Hauteur par défaut des lignes
         #col_default_width: 300   # Largeur par défaut des colonnes
