@@ -99,7 +99,7 @@ class FirstWindow(Screen):
                 print("Accelerometer is not implemented for your platform")
     
             if self.sensor:
-                Clock.schedule_interval(self.collect_accelerometer_data, 1 / 20)
+                Clock.schedule_interval(self.collect_accelerometer_data, 1 / 60)
             else:
                 accelerometer.disable()
         else:

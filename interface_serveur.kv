@@ -4,6 +4,7 @@ WindowManager:
 
 <FirstWindow>:
     name: 'first'
+    figure_wgt:figure_wgt
     GridLayout:
         cols: 1
         Label:
@@ -18,11 +19,36 @@ WindowManager:
             size_hint_y: None
             height: 50
 
+
+        
         BoxLayout:
-            id: box_graph
-            orientation: 'vertical'
-            size: root.width, root.height
-    
+            orientation:'vertical'
+            BoxLayout:
+                size_hint_y:0.2
+                Button:
+                    text:"home"
+                    on_press: root.start_graph()
+                    on_release:root.home()
+                ToggleButton:
+                    group:'touch_mode'
+                    state:'down'
+                    text:"pan" 
+                    on_press:
+                        root.set_touch_mode('pan')
+                        self.state='down'
+                ToggleButton:
+                    group:'touch_mode'
+                    text:"zoom box"  
+                    on_press:
+                        root.set_touch_mode('zoombox')
+                        self.state='down'  
+                   
+        MatplotFigure:
+            id:figure_wgt
+            fast_draw:True
+        
+
+                
         Button:
             text: "Stop server"
             on_press: root.stop_server()

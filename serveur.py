@@ -6,7 +6,23 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy_garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib.pyplot as plt
+import kivy_matplotlib_widget
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
+import matplotlib as mpl
+import numpy as np
 
+#optimized draw on Agg backend
+mpl.rcParams['path.simplify'] = True
+mpl.rcParams['path.simplify_threshold'] = 1.0
+
+#depending of the data. This can increase the graph rendering
+#see matplotlib doc for more info
+#https://matplotlib.org/stable/users/explain/artists/performance.html#splitting-lines-into-smaller-chunks
+mpl.rcParams['agg.path.chunksize'] = 1000
+
+
+# Configuration du serveur
 
 HEADER = 64
 PORT = 5050
@@ -18,19 +34,17 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 
-
-x_axis = list(range(21))
-x , y , z = [], [], []
-
-fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(5, 10))
-
+N = 100000
+xdata = np.arange(N)
+x, y, z = [], [], []
+max_data_window = 500
+ratio_data = 2
+count_index = 0
 class FirstWindow(Screen):
     def __init__(self, **kwargs):
         super(FirstWindow, self).__init__(**kwargs)
-        Clock.schedule_once(self.add_graph)
+        
 
-    def add_graph(self, dt):
-        self.ids.box_graph.add_widget(FigureCanvasKivyAgg(fig))
 
     def update_status(self, status):
         Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
@@ -41,55 +55,43 @@ class FirstWindow(Screen):
     def handle_client(self, conn, addr):
         self.update_status(f"[NEW CONNECTION] {addr} connected.")
         connected = True
-        while connected:
-            try:
-                msg_length = conn.recv(HEADER).decode(FORMAT)
-                if msg_length:
-                    msg_length = int(msg_length)
-                    msg = conn.recv(msg_length).decode(FORMAT)
+        with open("arrays.txt", "a") as f:
+            while connected:
+                try:
+                    msg_length = conn.recv(HEADER).decode(FORMAT)
+                    if msg_length:
+                        msg_length = int(msg_length)
+                        msg = conn.recv(msg_length).decode(FORMAT)
 
-                    split_msg = msg.split(",")
+                        split_msg = msg.split(",")
+                        if len(split_msg) == 3:
+                            x.append(float(split_msg[0]))
+                            y.append(float(split_msg[1]))
+                            z.append(float(split_msg[2]))
+                            
 
-                    if len(split_msg) ==3:
-                        x.append(float(split_msg[0]))
-                        y.append(float(split_msg[1]))
-                        z.append(float(split_msg[2]))
 
-                    if len(x) > 20:
-                        x.pop(0)
-                        y.pop(0)
-                        z.pop(0)
+                        f.write(f"{x}\n")
+                        f.write(f"{y}\n")
+                        f.write(f"{z}\n")
+                        #if len(x) > 20:
+                        #    x.pop(0)
+                        #    y.pop(0)
+                        #    z.pop(0)
+
+
+                    if msg == DISCONNECT_MESSAGE:
+                        connected = False
+                        self.update_status(f"Device {addr} disconnected.")
                     
-                    ax1.clear()
-                    ax2.clear()
-                    ax3.clear()
-
-                    ax1.plot(x_axis[-len(x):], x, 'r-')
-                    ax2.plot(x_axis[-len(y):], y, 'g-')
-                    ax3.plot(x_axis[-len(z):], z, 'b-')
-
-                    ax1.set_title("X Axis")
-                    ax2.set_title("Y Axis")
-                    ax3.set_title("Z Axis")
-
-                    fig.canvas.draw()
-
-
-
-                if msg == DISCONNECT_MESSAGE:
+                    self.update_messages(f"[{addr}] {msg}")
+                    conn.send("Message received".encode(FORMAT))
+                except:
                     connected = False
-                    self.update_status(f"Device {addr} disconnected.")
-                
-                self.update_messages(f"[{addr}] {msg}")
-                conn.send("Message received".encode(FORMAT))
-            except:
-                connected = False
-        conn.close()
+            conn.close()
 
 
 
-        
-        
 
     def start_server(self):
         server.listen()
@@ -109,6 +111,131 @@ class FirstWindow(Screen):
 
     def on_enter(self):
         threading.Thread(target=self.start_server, daemon=True).start()
+
+    line1 = None
+    line2 = None
+    line3 = None
+    min_index=0
+    max_index=1
+    current_xmax_refresh=None
+
+    def start_graph(self):
+        fig, ax = plt.subplots(1, 1)
+        self.line1, = plt.plot([], [],color="green", label = "X")
+        self.line2, = plt.plot([], [],color="red", label = "Y")
+        self.line3, = plt.plot([], [],color="blue", label = "Z")
+
+        ax.xaxis.set_major_locator(MaxNLocator(prune='lower',nbins=5))
+
+        self.current_xmax_refresh = xdata[max_data_window]
+
+        xmin = 0
+        xmax = self.current_xmax_refresh
+
+        ax.set_xlim(xmin, self.current_xmax_refresh)
+        ax.set_ylim(-40, 40)
+
+        self.figure_wgt.figure =fig 
+        self.figure_wgt.xmin =xmin 
+        self.figure_wgt.xmax = xmax 
+
+        Clock.schedule_once(self.update_graph_delay,3)
+
+    def update_graph_delay(self, *args):   
+        #update graph data every 1/60 seconds
+        Clock.schedule_interval(self.update_graph,1/60)
+
+    def update_graph(self, *args):
+
+        current_x = xdata[self.min_index:self.max_index] 
+        current_y1 = x[self.min_index:self.max_index] 
+        current_y2 = y[self.min_index:self.max_index] 
+        current_y3 = z[self.min_index:self.max_index]
+        print(current_x)
+
+        # Assurez-vous que les longueurs des tableaux sont égales
+        min_length = min(len(current_x), len(current_y1), len(current_y2), len(current_y3))
+        current_x = current_x[:min_length]
+        current_y1 = current_y1[:min_length]
+        current_y2 = current_y2[:min_length]
+        current_y3 = current_y3[:min_length]
+
+
+        if not self.max_index > N:
+
+            self.line1.set_data(current_x,current_y1)
+            self.line2.set_data(current_x,current_y2)
+            self.line3.set_data(current_x,current_y3)
+
+            if self.figure_wgt.axes.get_xlim()[0]==self.figure_wgt.xmin:
+                if len(current_x) != 0:
+                    if current_x[-1]< self.current_xmax_refresh:   
+
+                        myfig=self.figure_wgt
+                        ax2=myfig.axes
+                        #use blit method            
+                        if myfig.background is None:
+                            myfig.background_patch_copy.set_visible(True)
+                            ax2.figure.canvas.draw_idle()
+                            ax2.figure.canvas.flush_events()                   
+                            myfig.background = ax2.figure.canvas.copy_from_bbox(ax2.figure.bbox)
+                            myfig.background_patch_copy.set_visible(False)  
+                        ax2.figure.canvas.restore_region(myfig.background)
+
+                        for line in ax2.lines:
+                            ax2.draw_artist(line)
+                        ax2.figure.canvas.blit(ax2.bbox)
+                        ax2.figure.canvas.flush_events()                     
+                    else:
+                        #update axis limit
+                        
+                        try:
+                            self.current_xmax_refresh = xdata[self.max_index+int(max_data_window - max_data_window//ratio_data)]
+                        except:
+                            self.current_xmax_refresh = xdata[-1]
+                        # self.current_xmax_refresh = new_x[max_data_window]
+                        self.figure_wgt.xmin = xdata[self.max_index-int(max_data_window//ratio_data)]
+                        self.figure_wgt.xmax =self.current_xmax_refresh 
+                        myfig=self.figure_wgt
+                        ax2=myfig.axes                     
+                        myfig.background_patch_copy.set_visible(True)
+                        ax2.figure.canvas.draw_idle()
+                        ax2.figure.canvas.flush_events()                   
+                        myfig.background = ax2.figure.canvas.copy_from_bbox(ax2.figure.bbox)
+                        myfig.background_patch_copy.set_visible(False)           
+                        
+                        self.home()
+            else:
+                #minimum xlim as changed. pan or zoom if maybe detected
+                #update axis limit stop
+                myfig=self.figure_wgt
+                ax2=myfig.axes
+                #use blit method            
+                if myfig.background is None:
+                    myfig.background_patch_copy.set_visible(True)
+                    ax2.figure.canvas.draw_idle()
+                    ax2.figure.canvas.flush_events()                   
+                    myfig.background = ax2.figure.canvas.copy_from_bbox(ax2.figure.bbox)
+                    myfig.background_patch_copy.set_visible(False)  
+                ax2.figure.canvas.restore_region(myfig.background)
+               
+                for line in ax2.lines:
+                    ax2.draw_artist(line)
+                ax2.figure.canvas.blit(ax2.bbox)
+                ax2.figure.canvas.flush_events()   
+
+            self.max_index+=20 #increase step value (each frame, add 20 data)
+    
+        else:
+            Clock.unschedule(self.update_graph)
+            myfig=self.figure_wgt          
+            myfig.xmin = 0#if double-click, show all data            
+
+    def home(self):
+       self.figure_wgt.home()
+
+    def set_touch_mode(self,mode):
+        self.figure_wgt.touch_mode=mode
 
 
 class SecondWindow(Screen):
