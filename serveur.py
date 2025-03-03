@@ -35,16 +35,23 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 
 N = 100000
+count_index = 0
 xdata = np.arange(N)
-x, y, z = [], [], []
+x = []
+y = []
+z = []
 max_data_window = 500
 ratio_data = 2
-count_index = 0
+
+
 class FirstWindow(Screen):
+
+    
+
     def __init__(self, **kwargs):
         super(FirstWindow, self).__init__(**kwargs)
-        
-
+        #self.xdata = xdata
+     
 
     def update_status(self, status):
         Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
@@ -69,6 +76,8 @@ class FirstWindow(Screen):
                             y.append(float(split_msg[1]))
                             z.append(float(split_msg[2]))
                             
+                            
+                            
 
 
                         f.write(f"{x}\n")
@@ -90,6 +99,7 @@ class FirstWindow(Screen):
                     connected = False
             conn.close()
 
+    
 
 
 
@@ -129,6 +139,8 @@ class FirstWindow(Screen):
 
         self.current_xmax_refresh = xdata[max_data_window]
 
+        print(f"de base{self.current_xmax_refresh}")
+
         xmin = 0
         xmax = self.current_xmax_refresh
 
@@ -138,6 +150,7 @@ class FirstWindow(Screen):
         self.figure_wgt.figure =fig 
         self.figure_wgt.xmin =xmin 
         self.figure_wgt.xmax = xmax 
+        self.home()
 
         Clock.schedule_once(self.update_graph_delay,3)
 
@@ -151,10 +164,12 @@ class FirstWindow(Screen):
         current_y1 = x[self.min_index:self.max_index] 
         current_y2 = y[self.min_index:self.max_index] 
         current_y3 = z[self.min_index:self.max_index]
-        print(current_x)
+        #print(current_x)
 
         # Assurez-vous que les longueurs des tableaux sont égales
         min_length = min(len(current_x), len(current_y1), len(current_y2), len(current_y3))
+        #xdata = xdata[:min_length]
+        
         current_x = current_x[:min_length]
         current_y1 = current_y1[:min_length]
         current_y2 = current_y2[:min_length]
@@ -190,11 +205,14 @@ class FirstWindow(Screen):
                         #update axis limit
                         
                         try:
-                            self.current_xmax_refresh = xdata[self.max_index+int(max_data_window - max_data_window//ratio_data)]
+                            self.current_xmax_refresh =  xdata[self.max_index + int( max_data_window -  max_data_window// ratio_data)]
+                            print(f"try {self.max_index} ")
+                            print(f"try {self.current_xmax_refresh} ")
                         except:
-                            self.current_xmax_refresh = xdata[-1]
+                            self.current_xmax_refresh =  xdata[-1]
+                            print(f"except{self.current_xmax_refresh}")
                         # self.current_xmax_refresh = new_x[max_data_window]
-                        self.figure_wgt.xmin = xdata[self.max_index-int(max_data_window//ratio_data)]
+                        self.figure_wgt.xmin = self.xdata[self.max_index - int( max_data_window// ratio_data)]
                         self.figure_wgt.xmax =self.current_xmax_refresh 
                         myfig=self.figure_wgt
                         ax2=myfig.axes                     
@@ -225,7 +243,7 @@ class FirstWindow(Screen):
                 ax2.figure.canvas.flush_events()   
 
             self.max_index+=20 #increase step value (each frame, add 20 data)
-    
+            print(f"max_index {self.max_index}")
         else:
             Clock.unschedule(self.update_graph)
             myfig=self.figure_wgt          
