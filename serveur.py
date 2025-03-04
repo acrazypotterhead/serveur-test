@@ -50,7 +50,7 @@ class FirstWindow(Screen):
 
     def __init__(self, **kwargs):
         super(FirstWindow, self).__init__(**kwargs)
-        #self.xdata = xdata
+        self.data_count = 0
      
 
     def update_status(self, status):
@@ -70,23 +70,20 @@ class FirstWindow(Screen):
                         msg_length = int(msg_length)
                         msg = conn.recv(msg_length).decode(FORMAT)
 
+                        
                         split_msg = msg.split(",")
                         if len(split_msg) == 3:
                             x.append(float(split_msg[0]))
                             y.append(float(split_msg[1]))
                             z.append(float(split_msg[2]))
-                            
-                            
-                            
 
+                            self.data_count += 1 
+                            
 
                         f.write(f"{x}\n")
                         f.write(f"{y}\n")
                         f.write(f"{z}\n")
-                        #if len(x) > 20:
-                        #    x.pop(0)
-                        #    y.pop(0)
-                        #    z.pop(0)
+                        
 
 
                     if msg == DISCONNECT_MESSAGE:
@@ -106,6 +103,7 @@ class FirstWindow(Screen):
     def start_server(self):
         server.listen()
         self.update_status(f"[LISTENING] Server is listening on {SERVER}")
+        Clock.schedule_interval(self.reset_data_count, 1)
         while True:
             try:
                 conn, addr = server.accept()
@@ -242,7 +240,7 @@ class FirstWindow(Screen):
                 ax2.figure.canvas.blit(ax2.bbox)
                 ax2.figure.canvas.flush_events()   
 
-            self.max_index+=20 #increase step value (each frame, add 20 data)
+            self.max_index+=200 #increase step value (each frame, add 20 data)
             print(f"max_index {self.max_index}")
         else:
             Clock.unschedule(self.update_graph)
@@ -254,6 +252,10 @@ class FirstWindow(Screen):
 
     def set_touch_mode(self,mode):
         self.figure_wgt.touch_mode=mode
+
+    def reset_data_count(self, dt):
+        print(f"Data per second: {self.data_count}")
+        self.data_count = 0  # Réinitialiser le compteur
 
 
 class SecondWindow(Screen):
