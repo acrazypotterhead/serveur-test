@@ -1,3 +1,4 @@
+from kivy.uix.recyclegridlayout import defaultdict
 from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.label import Label
@@ -43,6 +44,12 @@ serveur_ip = ""
 
 
 class FirstWindow(Screen):
+
+    def __init__(self, **kwargs):
+        super(FirstWindow, self).__init__(**kwargs)
+        self.data_count = 0  # Compteur de données
+        self.sensor = False
+
     
     def start_gyroscope(self, instance):
         threading.Thread(target=self.collect_accelerometer_data).start()
@@ -88,7 +95,7 @@ class FirstWindow(Screen):
         message = self.ids.message.text  # Get the message from the input
         self.send(message)
 
-    sensor = False
+
 
     def do_toggle(self, *_args):   
         if not self.sensor:
@@ -100,12 +107,14 @@ class FirstWindow(Screen):
     
             if self.sensor:
                 Clock.schedule_interval(self.collect_accelerometer_data, 1 / 60)
+                Clock.schedule_interval(self.reset_data_count, 1)
             else:
                 accelerometer.disable()
         else:
             # Stop de la capture
             accelerometer.disable()
             Clock.unschedule(self.get_acceleration)
+            Clock.unschedule(self.reset_data_count)
     
             # Retour à l'état arrété
             self.sensor = False
@@ -118,6 +127,7 @@ class FirstWindow(Screen):
         try:
             val = accelerometer.acceleration[:3]
             if val is not None:
+                self.data_count += 1
                 val_x, val_y, val_z = val
                 self.ids.button_gyro.text = f"x: {val_x:.2f}, y: {val_y:.2f}, z: {val_z:.2f}"
                 self.send(f"{val_x:.0f},{val_y:.0f},{val_z:.0f}")  # Envoie les données au serveur
@@ -125,7 +135,10 @@ class FirstWindow(Screen):
             print(f"[ERROR] Impossible de lire l'accéléromètre : {e}")
 
 
-    
+    def reset_data_count(self, dt):
+        print(f"Data per second: {self.data_count}")
+        self.ids.data.text = f"Data per second: {self.data_count}"
+        self.data_count = 0  # Réinitialiser le compteur
         
         #while True:
         #    try:
