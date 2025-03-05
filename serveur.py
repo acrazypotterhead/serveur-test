@@ -36,11 +36,13 @@ server.bind(ADDR)
 
 N = 100000
 count_index = 0
+
 xdata = np.arange(N)
 x = []
 y = []
 z = []
-max_data_window = 500
+time = []
+max_data_window = 1000
 ratio_data = 2
 
 
@@ -51,6 +53,7 @@ class FirstWindow(Screen):
     def __init__(self, **kwargs):
         super(FirstWindow, self).__init__(**kwargs)
         self.data_count = 0
+        self.count_time = 0
      
 
     def update_status(self, status):
@@ -79,6 +82,7 @@ class FirstWindow(Screen):
 
                             self.data_count += 1 
                             
+                        
 
                         f.write(f"{x}\n")
                         f.write(f"{y}\n")
@@ -133,6 +137,8 @@ class FirstWindow(Screen):
         self.line2, = plt.plot([], [],color="red", label = "Y")
         self.line3, = plt.plot([], [],color="blue", label = "Z")
 
+        Clock.schedule_interval(self.update_time, 0.08)
+
         ax.xaxis.set_major_locator(MaxNLocator(prune='lower',nbins=5))
 
         self.current_xmax_refresh = xdata[max_data_window]
@@ -152,18 +158,23 @@ class FirstWindow(Screen):
 
         Clock.schedule_once(self.update_graph_delay,3)
 
+    def update_time(self, dt):
+        time.append(self.count_time)
+        self.count_time += 10
+        
+
     def update_graph_delay(self, *args):   
         #update graph data every 1/60 seconds
         Clock.schedule_interval(self.update_graph,1/60)
 
     def update_graph(self, *args):
 
-        current_x = xdata[self.min_index:self.max_index] 
+        current_x = time[self.min_index:self.max_index]
         current_y1 = x[self.min_index:self.max_index] 
         current_y2 = y[self.min_index:self.max_index] 
         current_y3 = z[self.min_index:self.max_index]
         #print(current_x)
-
+        
         # Assurez-vous que les longueurs des tableaux sont égales
         min_length = min(len(current_x), len(current_y1), len(current_y2), len(current_y3))
         #xdata = xdata[:min_length]
@@ -203,14 +214,15 @@ class FirstWindow(Screen):
                         #update axis limit
                         
                         try:
-                            self.current_xmax_refresh =  xdata[self.max_index + int( max_data_window -  max_data_window// ratio_data)]
+                            self.current_xmax_refresh =  time[self.max_index + int( max_data_window -  max_data_window// ratio_data)]
+                            
                             print(f"try {self.max_index} ")
                             print(f"try {self.current_xmax_refresh} ")
                         except:
-                            self.current_xmax_refresh =  xdata[-1]
+                            self.current_xmax_refresh =  time[-1]
                             print(f"except{self.current_xmax_refresh}")
                         # self.current_xmax_refresh = new_x[max_data_window]
-                        self.figure_wgt.xmin = self.xdata[self.max_index - int( max_data_window// ratio_data)]
+                        self.figure_wgt.xmin = time[self.max_index - int( max_data_window// ratio_data)]
                         self.figure_wgt.xmax =self.current_xmax_refresh 
                         myfig=self.figure_wgt
                         ax2=myfig.axes                     
@@ -241,7 +253,7 @@ class FirstWindow(Screen):
                 ax2.figure.canvas.flush_events()   
 
             self.max_index+=200 #increase step value (each frame, add 20 data)
-            print(f"max_index {self.max_index}")
+            #print(f"max_index {time}")
         else:
             Clock.unschedule(self.update_graph)
             myfig=self.figure_wgt          
@@ -254,7 +266,7 @@ class FirstWindow(Screen):
         self.figure_wgt.touch_mode=mode
 
     def reset_data_count(self, dt):
-        print(f"Data per second: {self.data_count}")
+        #print(f"Data per second: {self.data_count}")
         self.data_count = 0  # Réinitialiser le compteur
 
 
