@@ -203,7 +203,7 @@ class FirstWindow(Screen):
                     print(f"index {self.index}")
                     print(f"mod {self.modulo(self.index)}")
 
-                    if 0 >= self.modulo(self.index)[0]   :           #self.current_xmax_refresh:   
+                    if 0 == self.modulo(self.index)[0]:           #self.current_xmax_refresh:   
 
                         myfig=self.figure_wgt
                         ax2=myfig.axes

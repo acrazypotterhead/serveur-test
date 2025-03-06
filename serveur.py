@@ -54,7 +54,7 @@ class FirstWindow(Screen):
         super(FirstWindow, self).__init__(**kwargs)
         self.data_count = 0
         self.count_time = 0
-     
+        self.data_number = 0
 
     def update_status(self, status):
         Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
@@ -73,6 +73,9 @@ class FirstWindow(Screen):
                         msg_length = int(msg_length)
                         msg = conn.recv(msg_length).decode(FORMAT)
 
+                        print(f'msg_lenght {msg_length}')
+                        print(f'/n')
+                        print(f'msg {msg}')
                         
                         split_msg = msg.split(",")
                         if len(split_msg) == 3:
@@ -81,6 +84,8 @@ class FirstWindow(Screen):
                             z.append(float(split_msg[2]))
 
                             self.data_count += 1 
+                            
+
                             
                         
 
@@ -143,7 +148,7 @@ class FirstWindow(Screen):
 
         self.current_xmax_refresh = xdata[max_data_window]
 
-        print(f"de base{self.current_xmax_refresh}")
+        #print(f"de base{self.current_xmax_refresh}")
 
         xmin = 0
         xmax = self.current_xmax_refresh
@@ -216,8 +221,8 @@ class FirstWindow(Screen):
                         try:
                             self.current_xmax_refresh =  time[self.max_index + int( max_data_window -  max_data_window// ratio_data)]
                             
-                            print(f"try {self.max_index} ")
-                            print(f"try {self.current_xmax_refresh} ")
+                            #print(f"try {self.max_index} ")
+                            #print(f"try {self.current_xmax_refresh} ")
                         except:
                             self.current_xmax_refresh =  time[-1]
                             print(f"except{self.current_xmax_refresh}")
