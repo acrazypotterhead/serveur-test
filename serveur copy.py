@@ -42,7 +42,7 @@ x = []
 y = []
 z = []
 time = []
-max_data_window = 500
+max_data_window = 50
 ratio_data = 2
 
 
@@ -55,7 +55,7 @@ class FirstWindow(Screen):
         self.data_count = 0
         self.count_time = 0
         self.index = -1
-     
+    
 
     def update_status(self, status):
         Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
@@ -66,42 +66,34 @@ class FirstWindow(Screen):
     def handle_client(self, conn, addr):
         self.update_status(f"[NEW CONNECTION] {addr} connected.")
         connected = True
-        with open("arrays.txt", "a") as f:
-            while connected:
-                try:
-                    msg_length = conn.recv(HEADER).decode(FORMAT)
-                    if msg_length:
-                        msg_length = int(msg_length)
-                        msg = conn.recv(msg_length).decode(FORMAT)
+        
+        while connected:
+            try:
+                msg_length = conn.recv(HEADER).decode(FORMAT)
+                if msg_length:
+                    msg_length = int(msg_length)
+                    msg = conn.recv(msg_length).decode(FORMAT)
 
-                        
-                        split_msg = msg.split(",")
-                        if len(split_msg) == 3:
-                            x.append(float(split_msg[0]))
-                            y.append(float(split_msg[1]))
-                            z.append(float(split_msg[2]))
-
-                            self.data_count += 1 
-                            
-                        
-
-                        f.write(f"{x}\n")
-                        f.write(f"{y}\n")
-                        f.write(f"{z}\n")
-                        
-
-
-                    if msg == DISCONNECT_MESSAGE:
-                        connected = False
-                        self.update_status(f"Device {addr} disconnected.")
                     
-                    self.update_messages(f"[{addr}] {msg}")
-                    conn.send("Message received".encode(FORMAT))
-                except:
-                    connected = False
-            conn.close()
+                    split_msg = msg.split(",")
+                    if len(split_msg) == 3:
+                        x.append(float(split_msg[0]))
+                        y.append(float(split_msg[1]))
+                        z.append(float(split_msg[2]))
 
-    
+                        self.data_count += 1 
+
+                if msg == DISCONNECT_MESSAGE:
+                    connected = False
+                    self.update_status(f"Device {addr} disconnected.")
+                
+                self.update_messages(f"[{addr}] {msg}")
+                conn.send("Message received".encode(FORMAT))
+            except:
+                connected = False
+        conn.close()
+
+
 
 
 
@@ -138,7 +130,7 @@ class FirstWindow(Screen):
         self.line2, = plt.plot([], [],color="red", label = "Y")
         self.line3, = plt.plot([], [],color="blue", label = "Z")
 
-        Clock.schedule_interval(self.update_time, 0.08)
+        Clock.schedule_interval(self.update_time, 1)
 
         ax.xaxis.set_major_locator(MaxNLocator(prune='lower',nbins=5))
 
@@ -171,7 +163,7 @@ class FirstWindow(Screen):
 
     def update_graph_delay(self, *args):   
         #update graph data every 1/60 seconds
-        Clock.schedule_interval(self.update_graph,1/60)
+        Clock.schedule_interval(self.update_graph,1)
 
     def update_graph(self, *args):
 
@@ -277,7 +269,7 @@ class FirstWindow(Screen):
         self.figure_wgt.touch_mode=mode
 
     def reset_data_count(self, dt):
-        #print(f"Data per second: {self.data_count}")
+        print(f"Data per second: {self.data_count}")
         self.data_count = 0  # Réinitialiser le compteur
 
 

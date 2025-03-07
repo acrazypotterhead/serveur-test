@@ -65,45 +65,36 @@ class FirstWindow(Screen):
     def handle_client(self, conn, addr):
         self.update_status(f"[NEW CONNECTION] {addr} connected.")
         connected = True
-        with open("arrays.txt", "a") as f:
-            while connected:
-                try:
-                    msg_length = conn.recv(HEADER).decode(FORMAT)
-                    if msg_length:
-                        msg_length = int(msg_length)
-                        msg = conn.recv(msg_length).decode(FORMAT)
+        
+        while connected:
+            try:
+                msg_length = conn.recv(HEADER).decode(FORMAT)
+                if msg_length:
+                    msg_length = int(msg_length)
+                    msg = conn.recv(msg_length).decode(FORMAT)
 
-                        print(f'msg_lenght {msg_length}')
-                        print(f'/n')
-                        print(f'msg {msg}')
-                        
-                        split_msg = msg.split(",")
-                        if len(split_msg) == 3:
-                            x.append(float(split_msg[0]))
-                            y.append(float(split_msg[1]))
-                            z.append(float(split_msg[2]))
-
-                            self.data_count += 1 
-                            
-
-                            
-                        
-
-                        f.write(f"{x}\n")
-                        f.write(f"{y}\n")
-                        f.write(f"{z}\n")
-                        
-
-
-                    if msg == DISCONNECT_MESSAGE:
-                        connected = False
-                        self.update_status(f"Device {addr} disconnected.")
+                    print(f'msg_lenght {msg_length}')
+                    print(f'/n')
+                    print(f'msg {msg}')
                     
-                    self.update_messages(f"[{addr}] {msg}")
-                    conn.send("Message received".encode(FORMAT))
-                except:
+                    split_msg = msg.split(",")
+                    if len(split_msg) == 3:
+                        x.append(float(split_msg[0]))
+                        y.append(float(split_msg[1]))
+                        z.append(float(split_msg[2]))
+
+                        self.data_count += 1 
+                    
+                
+                if msg == DISCONNECT_MESSAGE:
                     connected = False
-            conn.close()
+                    self.update_status(f"Device {addr} disconnected.")
+                
+                self.update_messages(f"[{addr}] {msg}")
+                conn.send("Message received".encode(FORMAT))
+            except:
+                connected = False
+        conn.close()
 
     
 
@@ -271,7 +262,7 @@ class FirstWindow(Screen):
         self.figure_wgt.touch_mode=mode
 
     def reset_data_count(self, dt):
-        #print(f"Data per second: {self.data_count}")
+        print(f"Data per second: {self.data_count}")
         self.data_count = 0  # Réinitialiser le compteur
 
 
