@@ -66,16 +66,16 @@ class FirstWindow(Screen):
 
     
     def connect_to_server(self, serveur_ip):
-        while True:
-            try:
-                self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.client.connect((serveur_ip, PORT))
-                self.ids.label_ip.text = f"Connected to {serveur_ip}"
-                break
-            except Exception as e:
-                self.ids.label_ip.text = f"[ERROR] Could not connect to server: {e}"
-                self.client = None
-                break
+        
+        try:
+            self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.client.connect((serveur_ip, PORT))
+            self.ids.label_ip.text = f"Connected to {serveur_ip}"
+            
+        except Exception as e:
+            self.ids.label_ip.text = f"[ERROR] Could not connect to server: {e}"
+            self.client = None
+            
 
     def send(self, msg):
         if self.client:
