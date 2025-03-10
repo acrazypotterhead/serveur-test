@@ -29,11 +29,15 @@ def handle_client(conn, addr):
     
     while connected:
         try:
-            msg_length = conn.recv(HEADER).decode(FORMAT)
-            if msg_length:
-                msg_length = int(msg_length)
+            raw_msg_length = conn.recv(HEADER).decode(FORMAT)
+            # On retire les espaces blancs
+            msg_length_str = raw_msg_length.strip()
+
+            if msg_length_str:
+                msg_length = int(msg_length_str)
                 msg = conn.recv(msg_length).decode(FORMAT)
 
+                print(f"Received message: {msg}")
                 split_msg = msg.split(",")
                 if len(split_msg) == 3:
                     x.append(float(split_msg[0]))
@@ -52,6 +56,8 @@ def handle_client(conn, addr):
             print(f"[ERROR] {e}")
             connected = False
     conn.close()
+
+
 
 def start_server():
     server.listen()

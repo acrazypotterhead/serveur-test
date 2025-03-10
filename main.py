@@ -86,8 +86,7 @@ class FirstWindow(Screen):
             msg_length = len(message)
             send_length = str(msg_length).encode(FORMAT)
             send_length += b" " * (HEADER - len(send_length))
-            self.client.send(send_length)
-            self.client.send(message)
+            self.client.sendall(send_length + message)
         except Exception as e:
             print(f"[ERROR] Failed to send message: {e}")
             
@@ -132,6 +131,7 @@ class FirstWindow(Screen):
                 self.data_count += 1
                 val_x, val_y, val_z = val
                 self.ids.button_gyro.text = f"x: {val_x:.2f}, y: {val_y:.2f}, z: {val_z:.2f}"
+                self.ids.label_msg = f"{val}"
                 self.send(f"{val_x:.0f},{val_y:.0f},{val_z:.0f}")  # Envoie les données au serveur
         except Exception as e:
             print(f"[ERROR] Impossible de lire l'accéléromètre : {e}")
