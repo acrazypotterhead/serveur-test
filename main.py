@@ -66,7 +66,6 @@ class FirstWindow(Screen):
 
     
     def connect_to_server(self, serveur_ip):
-        
         try:
             self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client.connect((serveur_ip, PORT))
@@ -79,18 +78,19 @@ class FirstWindow(Screen):
 
     def send(self, msg):
         if self.client:
-            try:
-                
-                message = msg.encode(FORMAT)
-                msg_length = len(message)
-                send_length = str(msg_length).encode(FORMAT)
-                send_length += b" " * (HEADER - len(send_length))
-                self.client.send(send_length)
-                self.client.send(message)
-                print(self.client.recv(2048).decode(FORMAT))
-            except Exception as e:
-                print(f"[ERROR] Failed to send message: {e}")
+            threading.Thread(target=self._send_thread, args=(msg,)).start()
 
+    def _send_thread(self, msg):
+        try:
+            message = msg.encode(FORMAT)
+            msg_length = len(message)
+            send_length = str(msg_length).encode(FORMAT)
+            send_length += b" " * (HEADER - len(send_length))
+            self.client.send(send_length)
+            self.client.send(message)
+        except Exception as e:
+            print(f"[ERROR] Failed to send message: {e}")
+            
     def send_message(self):
         message = self.ids.message.text  # Get the message from the input
         self.send(message)
