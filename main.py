@@ -61,7 +61,7 @@ class FirstWindow(Screen):
         self.serveur_ip = self.ids.ip.text  # Store the server IP in an instance variable
         print(f"Server IP set to: {self.serveur_ip}")
         # Start the connection in a new thread to avoid blocking the UI
-        threading.Thread(target=self.connect_to_server, args=(self.serveur_ip,)).start()
+        self.connect_to_server(self.serveur_ip)
 
 
     
