@@ -69,26 +69,31 @@ class FirstWindow(Screen):
         
         while connected:
             try:
-                msg_length = conn.recv(HEADER).decode(FORMAT)
-                if msg_length:
-                    msg_length = int(msg_length)
+                raw_msg_length = conn.recv(HEADER).decode(FORMAT)
+                # On retire les espaces blancs
+                msg_length_str = raw_msg_length.strip()
+
+                if msg_length_str:
+                    msg_length = int(msg_length_str)
                     msg = conn.recv(msg_length).decode(FORMAT)
 
-                    
+                    print(f"Received message: {msg}")
                     split_msg = msg.split(",")
                     if len(split_msg) == 3:
                         x.append(float(split_msg[0]))
                         y.append(float(split_msg[1]))
                         z.append(float(split_msg[2]))
 
-                        self.data_count += 1 
+                        #self.data_count += 1 
+                        #time.append(self.count_time)
+                        #self.count_time += 1
 
                 if msg == DISCONNECT_MESSAGE:
                     connected = False
                     self.update_status(f"Device {addr} disconnected.")
                 
                 self.update_messages(f"[{addr}] {msg}")
-                conn.send("Message received".encode(FORMAT))
+                
             except:
                 connected = False
         conn.close()
@@ -100,7 +105,7 @@ class FirstWindow(Screen):
     def start_server(self):
         server.listen()
         self.update_status(f"[LISTENING] Server is listening on {SERVER}")
-        Clock.schedule_interval(self.reset_data_count, 1)
+        
         while True:
             try:
                 conn, addr = server.accept()
@@ -124,32 +129,35 @@ class FirstWindow(Screen):
     max_index=1
     current_xmax_refresh=None
 
+    # initialisation du graphique
     def start_graph(self):
-        fig, ax = plt.subplots(1, 1)
+        fig, ax = plt.subplots(1, 1) # Créer une figure avec un axe et un seul graphique
+        # 3 lignes pour les données X, Y et Z
         self.line1, = plt.plot([], [],color="green", label = "X")
         self.line2, = plt.plot([], [],color="red", label = "Y")
         self.line3, = plt.plot([], [],color="blue", label = "Z")
 
-        Clock.schedule_interval(self.update_time, 1)
+        #Clock.schedule_interval(self.update_time, 1/60)
 
+        # Configure l'axe des x pour utiliser un "locator" qui place un nombre maximum de graduations principales (ticks).
+        # MaxNLocator est utilisé pour s'assurer qu'il y a au maximum 5 graduations principales sur l'axe des x.
+        # prune='lower' supprime la première graduation (la plus basse) pour éviter les chevauchements ou pour des raisons esthétiques.
         ax.xaxis.set_major_locator(MaxNLocator(prune='lower',nbins=5))
 
-        self.current_xmax_refresh = xdata[max_data_window]
 
-        print(f"de base{self.current_xmax_refresh}")
-
+    
         xmin = 0
-        xmax = self.current_xmax_refresh
+        xmax = max_data_window
 
-        ax.set_xlim(xmin, self.current_xmax_refresh)
+        ax.set_xlim(xmin, xmax)
         ax.set_ylim(-40, 40)
 
-        self.figure_wgt.figure =fig 
-        self.figure_wgt.xmin =xmin 
+        self.figure_wgt.figure = fig 
+        self.figure_wgt.xmin = xmin 
         self.figure_wgt.xmax = xmax 
         self.home()
 
-        Clock.schedule_once(self.update_graph_delay,3)
+        Clock.schedule_once(self.update_graph_delay,1)
 
     def update_time(self, dt):
         time.append(self.count_time)
@@ -163,7 +171,7 @@ class FirstWindow(Screen):
 
     def update_graph_delay(self, *args):   
         #update graph data every 1/60 seconds
-        Clock.schedule_interval(self.update_graph,1)
+        Clock.schedule_interval(self.update_graph,1/60)
 
     def update_graph(self, *args):
 
@@ -175,7 +183,7 @@ class FirstWindow(Screen):
         
         # Assurez-vous que les longueurs des tableaux sont égales
         min_length = min(len(current_x), len(current_y1), len(current_y2), len(current_y3))
-        #xdata = xdata[:min_length]
+
         
         current_x = current_x[:min_length]
         current_y1 = current_y1[:min_length]
@@ -254,7 +262,7 @@ class FirstWindow(Screen):
                 ax2.figure.canvas.blit(ax2.bbox)
                 ax2.figure.canvas.flush_events()   
 
-            self.max_index+=1 #increase step value (each frame, add 20 data)
+            self.max_index+=20 #increase step value (each frame, add 20 data)
             
             #print(f"max_index {time}")
         else:
@@ -269,8 +277,10 @@ class FirstWindow(Screen):
         self.figure_wgt.touch_mode=mode
 
     def reset_data_count(self, dt):
-        print(f"Data per second: {self.data_count}")
-        self.data_count = 0  # Réinitialiser le compteur
+        while True:
+            print(f"Data per second: {self.data_count}")
+            self.data_count = 0  # Réinitialiser le compteur
+            time.sleep(1)
 
 
 class SecondWindow(Screen):
@@ -287,4 +297,5 @@ class ServerApp(App):
 
 
 if __name__ == "__main__":
+
     ServerApp().run()

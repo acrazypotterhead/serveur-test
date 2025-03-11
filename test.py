@@ -37,7 +37,7 @@ def handle_client(conn, addr):
                 msg_length = int(msg_length_str)
                 msg = conn.recv(msg_length).decode(FORMAT)
 
-                print(f"Received message: {msg}")
+                #print(f"Received message: {msg}")
                 split_msg = msg.split(",")
                 if len(split_msg) == 3:
                     x.append(float(split_msg[0]))
@@ -51,7 +51,7 @@ def handle_client(conn, addr):
                 #update_status(f"Device {addr} disconnected.")
             
             #update_messages(f"[{addr}] {msg}")
-            conn.send("Message received".encode(FORMAT))
+            
         except Exception as e:
             print(f"[ERROR] {e}")
             connected = False
@@ -82,3 +82,5 @@ def reset_data_count():
 if __name__ == "__main__":
     threading.Thread(target=reset_data_count, daemon=True).start()
     start_server()
+
+

@@ -48,7 +48,6 @@ ratio_data = 2
 
 class FirstWindow(Screen):
 
-    
 
     def __init__(self, **kwargs):
         super(FirstWindow, self).__init__(**kwargs)
@@ -84,6 +83,8 @@ class FirstWindow(Screen):
                         z.append(float(split_msg[2]))
 
                         self.data_count += 1 
+                else:
+                    break
                     
                 
                 if msg == DISCONNECT_MESSAGE:
@@ -103,15 +104,19 @@ class FirstWindow(Screen):
     def start_server(self):
         server.listen()
         self.update_status(f"[LISTENING] Server is listening on {SERVER}")
-        Clock.schedule_interval(self.reset_data_count, 1)
-        while True:
-            try:
-                conn, addr = server.accept()
-                thread = threading.Thread(target=self.handle_client, args=(conn, addr), daemon=True)
-                thread.start()
-                self.update_status(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
-            except:
-                break
+
+        def accept_connections():
+            while True:
+                try:
+                    conn, addr = server.accept()
+                    thread = threading.Thread(target=self.handle_client, args=(conn, addr), daemon=True)
+                    thread.start()
+                    self.update_status(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+                except Exception as e:
+                    self.update_status(f"Erreur serveur : {str(e)}")
+                    break
+        
+        threading.Thread(target=accept_connections, daemon=True).start()
 
     def stop_server(self):
         server.close()
@@ -119,7 +124,13 @@ class FirstWindow(Screen):
 
     def on_enter(self):
         threading.Thread(target=self.start_server, daemon=True).start()
+        
+    def reset_data_count(self, dt):
+        print(f"Data per second: {self.data_count}")
+        self.data_count = 0  # Réinitialiser le compteur
 
+
+"""
     line1 = None
     line2 = None
     line3 = None
@@ -261,9 +272,9 @@ class FirstWindow(Screen):
     def set_touch_mode(self,mode):
         self.figure_wgt.touch_mode=mode
 
-    def reset_data_count(self, dt):
-        print(f"Data per second: {self.data_count}")
-        self.data_count = 0  # Réinitialiser le compteur
+"""
+
+    
 
 
 class SecondWindow(Screen):
