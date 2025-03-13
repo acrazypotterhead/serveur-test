@@ -14,6 +14,7 @@ server.bind(ADDR)
 x = []
 y = []
 z = []
+timestamps = {}
 data_count = 0
 
 def update_status(status):
@@ -22,7 +23,7 @@ def update_status(status):
 def update_messages(message):
     print(message)
 
-def handle_client(conn, addr):
+def handle_client(conn, addr, start_time):
     global data_count
     update_status(f"[NEW CONNECTION] {addr} connected.")
     connected = True
@@ -44,8 +45,16 @@ def handle_client(conn, addr):
                     y.append(float(split_msg[1]))
                     z.append(float(split_msg[2]))
 
+                    i = len(x)
+                    elapsed_time = int( (time.time() - start_time) * 100000 )
+                    timestamps[i]=elapsed_time
+                    
                     data_count += 1 
 
+                    
+                if len(x) == 500:
+                    connected = False
+                    print(f"timestamps : {timestamps}")
             if msg == DISCONNECT_MESSAGE:
                 connected = False
                 #update_status(f"Device {addr} disconnected.")
@@ -62,10 +71,11 @@ def handle_client(conn, addr):
 def start_server():
     server.listen()
     update_status(f"[LISTENING] Server is listening on {SERVER}")
+    start_time = time.time()
     while True:
         try:
             conn, addr = server.accept()
-            thread = threading.Thread(target=handle_client, args=(conn, addr), daemon=True)
+            thread = threading.Thread(target=handle_client, args=(conn, addr, start_time), daemon=True)
             thread.start()
             update_status(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
         except Exception as e:
@@ -82,5 +92,4 @@ def reset_data_count():
 if __name__ == "__main__":
     threading.Thread(target=reset_data_count, daemon=True).start()
     start_server()
-
 

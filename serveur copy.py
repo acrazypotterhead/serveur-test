@@ -11,6 +11,8 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import matplotlib as mpl
 import numpy as np
+import time as time
+
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -31,20 +33,27 @@ ADDR = (SERVER, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(ADDR)
+server = None
+lock = threading.Lock()
 
-N = 100000
 count_index = 0
 
-xdata = np.arange(N)
-x = []
-y = []
-z = []
-time = []
+
+x = []#[30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79]
+y = []#[10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57]
+z = []#[20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,]
+time_x = [] #[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]
 max_data_window = 50
 ratio_data = 2
+timestamps = {}
 
+# Décorateur pour exécuter une fonction dans un thread séparé
+def thread(function):
+    def wrap(*args, **kwargs):
+        t = threading.Thread(target=function, args=args, kwargs=kwargs, daemon=True)
+        t.start()
+        return t
+    return wrap
 
 class FirstWindow(Screen):
 
@@ -55,6 +64,14 @@ class FirstWindow(Screen):
         self.data_count = 0
         self.count_time = 0
         self.index = -1
+        self.mod_base = 0
+        self.call_time = 0
+        self.first_plot_time = None
+        self.last_plot_time = None
+        self.server_thread = None
+        self.running = False
+
+
     
 
     def update_status(self, status):
@@ -63,30 +80,41 @@ class FirstWindow(Screen):
     def update_messages(self, message):
         Clock.schedule_once(lambda dt: self.ids.messages.setter('text')(self.ids.messages, self.ids.messages.text + message + "\n"))
 
-    def handle_client(self, conn, addr):
+    def handle_client(self, conn, addr, start_time):
         self.update_status(f"[NEW CONNECTION] {addr} connected.")
         connected = True
         
-        while connected:
+        while connected and self.running:
             try:
-                raw_msg_length = conn.recv(HEADER).decode(FORMAT)
-                # On retire les espaces blancs
-                msg_length_str = raw_msg_length.strip()
-
+                msg_length_str = conn.recv(HEADER).decode(FORMAT).strip()
+              
                 if msg_length_str:
                     msg_length = int(msg_length_str)
                     msg = conn.recv(msg_length).decode(FORMAT)
 
-                    print(f"Received message: {msg}")
+                    #print(f"Received message: {msg}")
                     split_msg = msg.split(",")
                     if len(split_msg) == 3:
-                        x.append(float(split_msg[0]))
-                        y.append(float(split_msg[1]))
-                        z.append(float(split_msg[2]))
+                        with lock:
+                            x.append(float(split_msg[0]))
+                            y.append(float(split_msg[1]))
+                            z.append(float(split_msg[2]))
 
-                        #self.data_count += 1 
-                        #time.append(self.count_time)
-                        #self.count_time += 1
+                            self.data_count += 1 
+                            time_x.append(self.count_time)
+
+                        self.count_time += 1
+                        i = len(x)
+                        elapsed_time = int( (time.time() - start_time) * 100000 )
+                        timestamps[i]=elapsed_time
+                         
+
+                #if len(x) == 500:
+                #    connected = False
+                #    print(f"x = {x}, y = {y}, z = {z}")
+                #    print(f"len(x) = {len(x)}, len(y) = {len(y)}, len(z) = {len(z)}")
+                #    print(f"len(time) = {len(time_x)}")
+                #    print(f"timestamps : {timestamps}")
 
                 if msg == DISCONNECT_MESSAGE:
                     connected = False
@@ -101,26 +129,39 @@ class FirstWindow(Screen):
 
 
 
-
+    @thread
     def start_server(self):
+        global server
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(ADDR)
         server.listen()
+        self.running = True
         self.update_status(f"[LISTENING] Server is listening on {SERVER}")
+        start_time = time.time()
         
-        while True:
+
+        while self.running:
             try:
                 conn, addr = server.accept()
-                thread = threading.Thread(target=self.handle_client, args=(conn, addr), daemon=True)
-                thread.start()
-                self.update_status(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
-            except:
+                threading.Thread(target=self.handle_client, args=(conn, addr, start_time), daemon=True).start()
+                self.update_status(f"[CONNEXIONS ACTIVES] {threading.active_count() - 1}")
+
+            except Exception as e:
+                self.update_status(f"[ERROR] {e}")
                 break
 
     def stop_server(self):
-        server.close()
-        self.update_status("[STOPPED] Server has stopped.")
+        """ Arrête proprement le serveur. """
+        global server
+        self.running = False  # Signale aux threads de s'arrêter
+        if server:
+            server.close()
+            server = None
+        self.update_status("[ARRÊT] Server stopped.")
 
     def on_enter(self):
-        threading.Thread(target=self.start_server, daemon=True).start()
+        self.start_server()
+        threading.Thread(target=self.reset_data_count, daemon=True).start()
 
     line1 = None
     line2 = None
@@ -137,7 +178,7 @@ class FirstWindow(Screen):
         self.line2, = plt.plot([], [],color="red", label = "Y")
         self.line3, = plt.plot([], [],color="blue", label = "Z")
 
-        #Clock.schedule_interval(self.update_time, 1/60)
+
 
         # Configure l'axe des x pour utiliser un "locator" qui place un nombre maximum de graduations principales (ticks).
         # MaxNLocator est utilisé pour s'assurer qu'il y a au maximum 5 graduations principales sur l'axe des x.
@@ -174,11 +215,13 @@ class FirstWindow(Screen):
         Clock.schedule_interval(self.update_graph,1/60)
 
     def update_graph(self, *args):
+        
+        with lock:
 
-        current_x = time[self.min_index:self.max_index]
-        current_y1 = x[self.min_index:self.max_index] 
-        current_y2 = y[self.min_index:self.max_index] 
-        current_y3 = z[self.min_index:self.max_index]
+            current_x = time_x[self.min_index:self.max_index]
+            current_y1 = x[self.min_index:self.max_index] 
+            current_y2 = y[self.min_index:self.max_index] 
+            current_y3 = z[self.min_index:self.max_index]
         #print(current_x)
         
         # Assurez-vous que les longueurs des tableaux sont égales
@@ -191,7 +234,7 @@ class FirstWindow(Screen):
         current_y3 = current_y3[:min_length]
 
 
-        if not self.max_index > N:
+        if not self.max_index > len(time_x):
 
             self.line1.set_data(current_x,current_y1)
             self.line2.set_data(current_x,current_y2)
@@ -199,11 +242,16 @@ class FirstWindow(Screen):
 
             if self.figure_wgt.axes.get_xlim()[0]==self.figure_wgt.xmin:
                 if len(current_x) != 0:
+
+                    if self.first_plot_time is None:
+                        self.first_plot_time = time.time()  # Enregistrer l'heure du premier tracé
+                    self.last_plot_time = time.time()  # 
+
                     self.index += 1
                     print(f"index {self.index}")
-                    print(f"mod {self.modulo(self.index)}")
-
-                    if 0 == self.modulo(self.index)[0]:           #self.current_xmax_refresh:   
+                    #print(f"mod {self.modulo(self.index)}")
+                    
+                    if self.mod_base == self.modulo(self.index)[0]:           #self.current_xmax_refresh:   
 
                         myfig=self.figure_wgt
                         ax2=myfig.axes
@@ -224,16 +272,16 @@ class FirstWindow(Screen):
                         #update axis limit
                         
                         try:
-                            self.current_xmax_refresh =  time[self.max_index + int( max_data_window -  max_data_window// ratio_data)]
+                            self.mod_base += 1
                             
                             print(f"try {self.max_index} ")
-                            print(f"try {self.current_xmax_refresh} ")
+                            #print(f"try {self.current_xmax_refresh} ")
                         except:
-                            self.current_xmax_refresh =  time[-1]
+                            self.current_xmax_refresh =  time_x[-1]
                             print(f"except{self.current_xmax_refresh}")
                         # self.current_xmax_refresh = new_x[max_data_window]
-                        self.figure_wgt.xmin = time[self.max_index - int( max_data_window// ratio_data)]
-                        self.figure_wgt.xmax =self.current_xmax_refresh 
+                        self.figure_wgt.xmin = max_data_window * self.modulo(self.index)[0]
+                        self.figure_wgt.xmax = max_data_window * (self.modulo(self.index)[0] + 1)
                         myfig=self.figure_wgt
                         ax2=myfig.axes                     
                         myfig.background_patch_copy.set_visible(True)
@@ -262,21 +310,28 @@ class FirstWindow(Screen):
                 ax2.figure.canvas.blit(ax2.bbox)
                 ax2.figure.canvas.flush_events()   
 
-            self.max_index+=20 #increase step value (each frame, add 20 data)
+            self.max_index+=1 #increase step value (each frame, add 20 data)
             
             #print(f"max_index {time}")
         else:
             Clock.unschedule(self.update_graph)
             myfig=self.figure_wgt          
-            myfig.xmin = 0#if double-click, show all data            
+            myfig.xmin = 0#if double-click, show all data   
 
+        if self.index == 500:
+            self.print_plot_times()
+
+    def print_plot_times(self):
+        if self.first_plot_time is not None and self.last_plot_time is not None:
+            elapsed_time_plot = self.last_plot_time - self.first_plot_time
+            print(f"Time between first and last plot: {elapsed_time_plot} seconds")
     def home(self):
        self.figure_wgt.home()
 
     def set_touch_mode(self,mode):
         self.figure_wgt.touch_mode=mode
 
-    def reset_data_count(self, dt):
+    def reset_data_count(self):
         while True:
             print(f"Data per second: {self.data_count}")
             self.data_count = 0  # Réinitialiser le compteur

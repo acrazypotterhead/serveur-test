@@ -82,7 +82,14 @@ class FirstWindow(Screen):
                         y.append(float(split_msg[1]))
                         z.append(float(split_msg[2]))
 
+
                         self.data_count += 1 
+
+
+                        #if len(x) > 500:
+                        #    x.pop(0)
+                        #    y.pop(0)
+                        #    z.pop(0)
                 else:
                     break
                     
@@ -130,7 +137,7 @@ class FirstWindow(Screen):
         self.data_count = 0  # Réinitialiser le compteur
 
 
-"""
+
     line1 = None
     line2 = None
     line3 = None
@@ -272,7 +279,7 @@ class FirstWindow(Screen):
     def set_touch_mode(self,mode):
         self.figure_wgt.touch_mode=mode
 
-"""
+
 
     
 
