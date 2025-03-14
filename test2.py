@@ -1,149 +1,321 @@
+import socket
 import threading
-import time
-
 from kivy.app import App
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.clock import Clock
 from kivy.lang import Builder
-from kivy.factory import Factory
-from kivy.animation import Animation
-from kivy.clock import Clock, mainthread
-from kivy.uix.gridlayout import GridLayout
+from kivy_garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+import matplotlib.pyplot as plt
+import kivy_matplotlib_widget
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
+import matplotlib as mpl
+import numpy as np
+import time as time
+import random
 
 
-Builder.load_string("""
-<AnimWidget@Widget>:
-    canvas:
-        Color:
-            rgba: 0.7, 0.3, 0.9, 1
-        Rectangle:
-            pos: self.pos
-            size: self.size
-    size_hint: None, None
-    size: 400, 30
+#optimized draw on Agg backend
+mpl.rcParams['path.simplify'] = True
+mpl.rcParams['path.simplify_threshold'] = 1.0
+
+#depending of the data. This can increase the graph rendering
+#see matplotlib doc for more info
+#https://matplotlib.org/stable/users/explain/artists/performance.html#splitting-lines-into-smaller-chunks
+mpl.rcParams['agg.path.chunksize'] = 1000
 
 
-<RootWidget>:
-    cols: 1
+# Configuration du serveur
 
-    canvas:
-        Color:
-            rgba: 0.9, 0.9, 0.9, 1
-        Rectangle:
-            pos: self.pos
-            size: self.size
+HEADER = 64
+PORT = 5050
+SERVER = "192.168.5.27"  # Vérifie bien cette adresse IP
+ADDR = (SERVER, PORT)
+FORMAT = "utf-8"
+DISCONNECT_MESSAGE = "!DISCONNECT"
 
-    anim_box: anim_box
-    but_1: but_1
-    lab_1: lab_1
-    lab_2: lab_2
+server = None
+lock = threading.Lock()
 
-    Button:
-        id: but_1
-        font_size: 20
-        text: 'Start second thread'
-        on_press: root.start_second_thread(lab_2.text)
-
-    Label:
-        id: lab_1
-        font_size: 30
-        color: 0.6, 0.6, 0.6, 1
-        text_size: self.width, None
-        halign: 'center'
-
-    AnchorLayout:
-        id: anim_box
-
-    Label:
-        id: lab_2
-        font_size: 100
-        color: 0.8, 0, 0, 1
-        text: '3'
-""")
+count_index = 0
 
 
-class RootWidget(GridLayout):
+x = []#[30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79]
+y = []#[10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57]
+z = []#[20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,]
+time_x = [] #[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]
+max_data_window = 100
+ratio_data = 2
+timestamps = {}
 
-    stop = threading.Event()
+# Décorateur pour exécuter une fonction dans un thread séparé
+def thread(function):
+    def wrap(*args, **kwargs):
+        t = threading.Thread(target=function, args=args, kwargs=kwargs, daemon=True)
+        t.start()
+        return t
+    return wrap
 
-    def start_second_thread(self, l_text):
-        threading.Thread(target=self.second_thread, args=(l_text,)).start()
+class FirstWindow(Screen):
 
-    def second_thread(self, label_text):
-        # Remove a widget, update a widget property, create a new widget,
-        # add it and animate it in the main thread by scheduling a function
-        # call with Clock.
-        Clock.schedule_once(self.start_test, 0)
+    
 
-        # Do some thread blocking operations.
-        time.sleep(5)
-        l_text = str(int(label_text) * 3000)
+    def __init__(self, **kwargs):
+        super(FirstWindow, self).__init__(**kwargs)
+        self.data_count = 0
+        self.count_time = 0
+        self.index = -1
+        self.mod_base = 0
+        self.call_time = 0
+        self.first_plot_time = None
+        self.last_plot_time = None
+        self.server_thread = None
+        self.running = False
 
-        # Update a widget property in the main thread by decorating the
-        # called function with @mainthread.
-        self.update_label_text(l_text)
 
-        # Do some more blocking operations.
-        time.sleep(2)
+    
 
-        # Remove some widgets and update some properties in the main thread
-        # by decorating the called function with @mainthread.
-        self.stop_test()
+    def update_status(self, status):
+        Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
 
-        # Start a new thread with an infinite loop and stop the current one.
-        threading.Thread(target=self.infinite_loop).start()
+    def update_messages(self, message):
+        Clock.schedule_once(lambda dt: self.ids.messages.setter('text')(self.ids.messages, self.ids.messages.text + message + "\n"))
 
-    def start_test(self, *args):
-        # Remove the button.
-        self.remove_widget(self.but_1)
+    def handle_client(self, ):
+        self.update_status(f"adding data")
+        
 
-        # Update a widget property.
-        self.lab_1.text = ('The UI remains responsive while the '
-                           'second thread is running.')
+        
+        x.append(random.uniform(-40, 40))
+        y.append(random.uniform(-40, 40))
+        z.append(random.uniform(-40, 40))
+        time_x.append(self.count_time)
+        self.count_time += 1
 
-        # Create and add a new widget.
-        anim_bar = Factory.AnimWidget()
-        self.anim_box.add_widget(anim_bar)
+        #print(f"x = {x}")
+        #print(f"y = {y}")
+        #print(f"z = {z}")
+    @thread
+    def start_server(self):
+        #global server
+        #server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #server.bind(ADDR)
+        #server.listen()
+        #self.running = True
+        #self.update_status(f"[LISTENING] Server is listening on {SERVER}")
+        #start_time = time.time()
+        
 
-        # Animate the added widget.
-        anim = Animation(opacity=0.3, width=100, duration=0.6)
-        anim += Animation(opacity=1, width=400, duration=0.8)
-        anim.repeat = True
-        anim.start(anim_bar)
-
-    @mainthread
-    def update_label_text(self, new_text):
-        self.lab_2.text = new_text
-
-    @mainthread
-    def stop_test(self):
-        self.lab_1.text = ('Second thread exited, a new thread has started. '
-                           'Close the app to exit the new thread and stop '
-                           'the main process.')
-
-        self.lab_2.text = str(int(self.lab_2.text) + 1)
-
-        self.remove_widget(self.anim_box)
-
-    def infinite_loop(self):
-        iteration = 0
         while True:
-            if self.stop.is_set():
-                # Stop running this thread so the main Python process can exit.
-                return
-            iteration += 1
-            print('Infinite loop, iteration {}.'.format(iteration))
+            try:
+                
+                threading.Thread(target=self.handle_client, args=(), daemon=True).start()
+                
+                time.sleep(0.01)
+
+            except Exception as e:
+                self.update_status(f"[ERROR] {e}")
+                break
+
+    def stop_server(self):
+        """ Arrête proprement le serveur. """
+        global server
+        self.running = False  # Signale aux threads de s'arrêter
+        if server:
+            server.close()
+            server = None
+        self.update_status("[ARRÊT] Server stopped.")
+
+    def on_enter(self):
+        self.start_server()
+        threading.Thread(target=self.reset_data_count, daemon=True).start()
+
+    line1 = None
+    line2 = None
+    line3 = None
+    min_index=0
+    max_index=1
+    current_xmax_refresh=None
+
+    # initialisation du graphique
+    def start_graph(self):
+        fig, ax = plt.subplots(1, 1) # Créer une figure avec un axe et un seul graphique
+        # 3 lignes pour les données X, Y et Z
+        self.line1, = plt.plot([], [],color="green", label = "X")
+        self.line2, = plt.plot([], [],color="red", label = "Y")
+        self.line3, = plt.plot([], [],color="blue", label = "Z")
+
+
+
+        # Configure l'axe des x pour utiliser un "locator" qui place un nombre maximum de graduations principales (ticks).
+        # MaxNLocator est utilisé pour s'assurer qu'il y a au maximum 5 graduations principales sur l'axe des x.
+        # prune='lower' supprime la première graduation (la plus basse) pour éviter les chevauchements ou pour des raisons esthétiques.
+        ax.xaxis.set_major_locator(MaxNLocator(prune='lower',nbins=5))
+
+
+    
+        xmin = 0
+        xmax = max_data_window
+
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(-40, 40)
+
+        self.figure_wgt.figure = fig 
+        self.figure_wgt.xmin = xmin 
+        self.figure_wgt.xmax = xmax 
+        self.home()
+
+        Clock.schedule_once(self.update_graph_delay,1)
+
+  
+        
+    def modulo (self, a):
+        mod = divmod(a, max_data_window)
+        return mod
+    
+
+
+    def update_graph_delay(self, *args):   
+        #update graph data every 1/60 seconds
+        Clock.schedule_interval(self.update_graph,1/50)
+
+    def update_graph(self, *args):
+        
+        with lock:
+
+            current_x = time_x[self.min_index:self.max_index]
+            current_y1 = x[self.min_index:self.max_index] 
+            current_y2 = y[self.min_index:self.max_index] 
+            current_y3 = z[self.min_index:self.max_index]
+        #print(current_x)
+        
+        # Assurez-vous que les longueurs des tableaux sont égales
+        min_length = min(len(current_x), len(current_y1), len(current_y2), len(current_y3))
+
+        
+        current_x = current_x[:min_length]
+        current_y1 = current_y1[:min_length]
+        current_y2 = current_y2[:min_length]
+        current_y3 = current_y3[:min_length]
+
+
+        if not self.max_index > len(time_x):
+
+            self.line1.set_data(current_x,current_y1)
+            self.line2.set_data(current_x,current_y2)
+            self.line3.set_data(current_x,current_y3)
+
+            if self.figure_wgt.axes.get_xlim()[0]==self.figure_wgt.xmin:
+                if len(current_x) != 0:
+
+                    if self.first_plot_time is None:
+                        self.first_plot_time = time.time()  # Enregistrer l'heure du premier tracé
+                    self.last_plot_time = time.time()  # 
+
+                    self.index += 1
+                    print(f"index {self.index}")
+                    #print(f"mod {self.modulo(self.index)}")
+                    
+                    if self.mod_base == self.modulo(self.index)[0]:           #self.current_xmax_refresh:   
+
+                        myfig=self.figure_wgt
+                        ax2=myfig.axes
+                        #use blit method            
+                        if myfig.background is None:
+                            myfig.background_patch_copy.set_visible(True)
+                            ax2.figure.canvas.draw_idle()
+                            ax2.figure.canvas.flush_events()                   
+                            myfig.background = ax2.figure.canvas.copy_from_bbox(ax2.figure.bbox)
+                            myfig.background_patch_copy.set_visible(False)  
+                        ax2.figure.canvas.restore_region(myfig.background)
+
+                        for line in ax2.lines:
+                            ax2.draw_artist(line)
+                        ax2.figure.canvas.blit(ax2.bbox)
+                        ax2.figure.canvas.flush_events()                     
+                    else:
+                        #update axis limit
+                        
+                        try:
+                            self.mod_base += 1
+                            
+                            print(f"try {self.max_index} ")
+                            #print(f"try {self.current_xmax_refresh} ")
+                        except:
+                            self.current_xmax_refresh =  time_x[-1]
+                            print(f"except{self.current_xmax_refresh}")
+                        # self.current_xmax_refresh = new_x[max_data_window]
+                        self.figure_wgt.xmin = max_data_window * self.modulo(self.index)[0]
+                        self.figure_wgt.xmax = max_data_window * (self.modulo(self.index)[0] + 1)
+                        myfig=self.figure_wgt
+                        ax2=myfig.axes                     
+                        myfig.background_patch_copy.set_visible(True)
+                        ax2.figure.canvas.draw_idle()
+                        ax2.figure.canvas.flush_events()                   
+                        myfig.background = ax2.figure.canvas.copy_from_bbox(ax2.figure.bbox)
+                        myfig.background_patch_copy.set_visible(False)           
+                        
+                        self.home()
+            else:
+                #minimum xlim as changed. pan or zoom if maybe detected
+                #update axis limit stop
+                myfig=self.figure_wgt
+                ax2=myfig.axes
+                #use blit method            
+                if myfig.background is None:
+                    myfig.background_patch_copy.set_visible(True)
+                    ax2.figure.canvas.draw_idle()
+                    ax2.figure.canvas.flush_events()                   
+                    myfig.background = ax2.figure.canvas.copy_from_bbox(ax2.figure.bbox)
+                    myfig.background_patch_copy.set_visible(False)  
+                ax2.figure.canvas.restore_region(myfig.background)
+               
+                for line in ax2.lines:
+                    ax2.draw_artist(line)
+                ax2.figure.canvas.blit(ax2.bbox)
+                ax2.figure.canvas.flush_events()   
+
+            self.max_index+=1 #increase step value (each frame, add 20 data)
+            
+            #print(f"max_index {time}")
+        else:
+            Clock.unschedule(self.update_graph)
+            myfig=self.figure_wgt          
+            myfig.xmin = 0#if double-click, show all data   
+
+        if self.index == 500:
+            self.print_plot_times()
+
+    def print_plot_times(self):
+        if self.first_plot_time is not None and self.last_plot_time is not None:
+            elapsed_time_plot = self.last_plot_time - self.first_plot_time
+            print(f"Time between first and last plot: {elapsed_time_plot} seconds")
+    def home(self):
+       self.figure_wgt.home()
+
+    def set_touch_mode(self,mode):
+        self.figure_wgt.touch_mode=mode
+
+    def reset_data_count(self):
+        while True:
+            print(f"Data per second: {self.data_count}")
+            self.data_count = 0  # Réinitialiser le compteur
             time.sleep(1)
 
 
-class ThreadedApp(App):
+class SecondWindow(Screen):
+    pass
 
-    def on_stop(self):
-        # The Kivy event loop is about to stop, set a stop signal;
-        # otherwise the app window will close, but the Python process will
-        # keep running until all secondary threads exit.
-        self.root.stop.set()
 
+class WindowManager(ScreenManager):
+    pass
+
+
+class ServerApp(App):
     def build(self):
-        return RootWidget()
+        return Builder.load_file("interface_serveur.kv")
 
-if __name__ == '__main__':
-    ThreadedApp().run()
+
+if __name__ == "__main__":
+
+    ServerApp().run()

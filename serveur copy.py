@@ -121,6 +121,7 @@ class FirstWindow(Screen):
                     self.update_status(f"Device {addr} disconnected.")
                 
                 self.update_messages(f"[{addr}] {msg}")
+                time.sleep(0.01)
                 
             except:
                 connected = False
@@ -145,6 +146,7 @@ class FirstWindow(Screen):
                 conn, addr = server.accept()
                 threading.Thread(target=self.handle_client, args=(conn, addr, start_time), daemon=True).start()
                 self.update_status(f"[CONNEXIONS ACTIVES] {threading.active_count() - 1}")
+                time.sleep(0.01)
 
             except Exception as e:
                 self.update_status(f"[ERROR] {e}")
