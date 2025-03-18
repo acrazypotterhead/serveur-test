@@ -23,7 +23,7 @@ class EchoServerFactory(protocol.Factory):
 
 from kivy.app import App
 from kivy.uix.label import Label
-
+x, y, z = [], [], []
 
 class TwistedServerApp(App):
     label = None
@@ -36,14 +36,24 @@ class TwistedServerApp(App):
     def handle_message(self, msg):
         msg = msg.decode('utf-8')
         self.label.text = "received:  {}\n".format(msg)
+        msg = format(msg)
+        split_msg = msg.split(",")
+        if len(split_msg) == 3:
+            x.append(float(split_msg[0]))
+            y.append(float(split_msg[1]))
+            z.append(float(split_msg[2]))
 
         if msg == "ping":
             msg = "Pong"
         if msg == "plop":
             msg = "Kivy Rocks!!!"
         self.label.text += "responded: {}\n".format(msg)
+        
+
+        print(f"x: ", x)
+        print("y: ", y)
+        print("z: ", z)
+        print("\n")
         return msg.encode('utf-8')
-
-
 if __name__ == '__main__':
     TwistedServerApp().run()
