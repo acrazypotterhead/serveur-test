@@ -1,7 +1,7 @@
 [app]
 
 # (str) Title of your application
-title = Serveur Test
+title = Serveur Test Twisted
 
 # (str) Package name
 package.name = serv
