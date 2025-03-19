@@ -12,8 +12,8 @@ from matplotlib.ticker import MaxNLocator
 import matplotlib as mpl
 import numpy as np
 import time as time
-
-
+from twisted.internet import reactor, protocol
+import random
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
 mpl.rcParams['path.simplify_threshold'] = 1.0
@@ -38,12 +38,13 @@ lock = threading.Lock()
 
 count_index = 0
 
+#time_x = range(1,200) #int(time.time() * 1000)  # Temps en millisecondes
 
-x = []#[30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79]
-y = []#[10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57]
-z = []#[20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,]
-time_x = [] #[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]
-max_data_window = 50
+x = [] #np.random.uniform(-40, 40,200)
+y = [] #np.random.uniform(-40, 40,200)
+z = [] #np.random.uniform(-40, 40,200)
+time_x = [] #range(1,400) #int(time.time() * 1000)  # Temps en millisecondes
+max_data_window = 100
 ratio_data = 2
 timestamps = {}
 
@@ -54,6 +55,36 @@ def thread(function):
         t.start()
         return t
     return wrap
+
+class DataReceiver(protocol.Protocol):
+    def __init__(self):
+        super().__init__()
+        self.count = 0
+    
+
+    def dataReceived(self, data):
+        try:
+            with lock:
+                values = data.decode("utf-8").strip().split(',')
+                xdata, ydata, zdata = map(int, values)
+                timestamp = self.count #int(time.time() * 1000)
+                reactor.callFromThread(FirstWindow.update_array, True,xdata, ydata, zdata, timestamp)
+                self.count += 1
+        except ValueError:
+            print("Donnée reçue invalide :", data)
+
+
+class DataReceiverFactory(protocol.Factory):
+    def buildProtocol(self, addr):
+        return DataReceiver()
+
+
+def activate_monitor_mode():
+    from kivy.core.window import Window
+    from kivy.modules import Modules
+    from kivy.config import Config
+    Config.set('modules', 'monitor', '')
+    Modules.activate_module('monitor', Window)
 
 class FirstWindow(Screen):
 
@@ -70,6 +101,7 @@ class FirstWindow(Screen):
         self.last_plot_time = None
         self.server_thread = None
         self.running = False
+        self.call_time = 0
 
 
     
@@ -80,77 +112,23 @@ class FirstWindow(Screen):
     def update_messages(self, message):
         Clock.schedule_once(lambda dt: self.ids.messages.setter('text')(self.ids.messages, self.ids.messages.text + message + "\n"))
 
-    def handle_client(self, conn, addr, start_time):
-        self.update_status(f"[NEW CONNECTION] {addr} connected.")
-        connected = True
+    def update_array(self, xdata, ydata, zdata, timestamp):
+        with lock:
+            
+            x.append(xdata)
+            y.append(ydata)
+            z.append(zdata)
+            time_x.append(timestamp)
+
+            print(f"len x {len(x)}")
+            print(f"len time {len(time_x)}")
+                
+            
         
-        while connected and self.running:
-            try:
-                msg_length_str = conn.recv(HEADER).decode(FORMAT).strip()
-              
-                if msg_length_str:
-                    msg_length = int(msg_length_str)
-                    msg = conn.recv(msg_length).decode(FORMAT)
-
-                    #print(f"Received message: {msg}")
-                    split_msg = msg.split(",")
-                    if len(split_msg) == 3:
-                        with lock:
-                            x.append(float(split_msg[0]))
-                            y.append(float(split_msg[1]))
-                            z.append(float(split_msg[2]))
-
-                            self.data_count += 1 
-                            time_x.append(self.count_time)
-
-                        self.count_time += 1
-                        i = len(x)
-                        elapsed_time = int( (time.time() - start_time) * 100000 )
-                        timestamps[i]=elapsed_time
-                         
-
-                #if len(x) == 500:
-                #    connected = False
-                #    print(f"x = {x}, y = {y}, z = {z}")
-                #    print(f"len(x) = {len(x)}, len(y) = {len(y)}, len(z) = {len(z)}")
-                #    print(f"len(time) = {len(time_x)}")
-                #    print(f"timestamps : {timestamps}")
-
-                if msg == DISCONNECT_MESSAGE:
-                    connected = False
-                    self.update_status(f"Device {addr} disconnected.")
-                
-                self.update_messages(f"[{addr}] {msg}")
-                time.sleep(0.01)
-                
-            except:
-                connected = False
-        conn.close()
-
-
-
-
     @thread
     def start_server(self):
-        global server
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind(ADDR)
-        server.listen()
-        self.running = True
-        self.update_status(f"[LISTENING] Server is listening on {SERVER}")
-        start_time = time.time()
-        
-
-        while self.running:
-            try:
-                conn, addr = server.accept()
-                threading.Thread(target=self.handle_client, args=(conn, addr, start_time), daemon=True).start()
-                self.update_status(f"[CONNEXIONS ACTIVES] {threading.active_count() - 1}")
-                time.sleep(0.01)
-
-            except Exception as e:
-                self.update_status(f"[ERROR] {e}")
-                break
+        reactor.listenTCP(8000, DataReceiverFactory())
+        reactor.run(installSignalHandlers=False)
 
     def stop_server(self):
         """ Arrête proprement le serveur. """
@@ -163,7 +141,7 @@ class FirstWindow(Screen):
 
     def on_enter(self):
         self.start_server()
-        threading.Thread(target=self.reset_data_count, daemon=True).start()
+        #threading.Thread(target=self.reset_data_count, daemon=True).start()
 
     line1 = None
     line2 = None
@@ -174,12 +152,13 @@ class FirstWindow(Screen):
 
     # initialisation du graphique
     def start_graph(self):
+
+       
         fig, ax = plt.subplots(1, 1) # Créer une figure avec un axe et un seul graphique
         # 3 lignes pour les données X, Y et Z
         self.line1, = plt.plot([], [],color="green", label = "X")
         self.line2, = plt.plot([], [],color="red", label = "Y")
         self.line3, = plt.plot([], [],color="blue", label = "Z")
-
 
 
         # Configure l'axe des x pour utiliser un "locator" qui place un nombre maximum de graduations principales (ticks).
@@ -214,12 +193,14 @@ class FirstWindow(Screen):
 
     def update_graph_delay(self, *args):   
         #update graph data every 1/60 seconds
-        Clock.schedule_interval(self.update_graph,1/60)
+        Clock.schedule_interval(self.update_graph,1/6)
 
     def update_graph(self, *args):
+
+        print(f" appel : {self.call_time}")
+        self.call_time += 1
         
         with lock:
-
             current_x = time_x[self.min_index:self.max_index]
             current_y1 = x[self.min_index:self.max_index] 
             current_y2 = y[self.min_index:self.max_index] 
@@ -241,6 +222,8 @@ class FirstWindow(Screen):
             self.line1.set_data(current_x,current_y1)
             self.line2.set_data(current_x,current_y2)
             self.line3.set_data(current_x,current_y3)
+
+
 
             if self.figure_wgt.axes.get_xlim()[0]==self.figure_wgt.xmin:
                 if len(current_x) != 0:
@@ -314,7 +297,7 @@ class FirstWindow(Screen):
 
             self.max_index+=1 #increase step value (each frame, add 20 data)
             
-            #print(f"max_index {time}")
+            print(f"max_index {self.max_index}")
         else:
             Clock.unschedule(self.update_graph)
             myfig=self.figure_wgt          

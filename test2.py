@@ -95,6 +95,13 @@ class FirstWindow(Screen):
         #print(f"x = {x}")
         #print(f"y = {y}")
         #print(f"z = {z}")
+        #print(f"len x = {len(x)}")
+        #print(f"time_x = {time_x}")
+        #print(f"len time_x = {len(time_x)}")
+
+        #print(f"x = {x}")
+        #print(f"y = {y}")
+        #print(f"z = {z}")
     @thread
     def start_server(self):
         #global server
