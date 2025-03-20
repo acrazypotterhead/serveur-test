@@ -16,6 +16,7 @@ from widgets import Jauge
 from kivy.core.window import Window
 
 
+
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 

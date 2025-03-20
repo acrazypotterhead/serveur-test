@@ -14,6 +14,9 @@ import numpy as np
 import time as time
 from twisted.internet import reactor, protocol
 import random
+
+import logging
+logging.getLogger('matplotlib.font_manager').disabled = True
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
 mpl.rcParams['path.simplify_threshold'] = 1.0
@@ -60,19 +63,19 @@ class DataReceiver(protocol.Protocol):
     def __init__(self):
         super().__init__()
         self.count = 0
-    
 
     def dataReceived(self, data):
         try:
             with lock:
                 values = data.decode("utf-8").strip().split(',')
+                if len(values) != 3:
+                    raise ValueError("Invalid data length")
                 xdata, ydata, zdata = map(int, values)
-                timestamp = self.count #int(time.time() * 1000)
-                reactor.callFromThread(FirstWindow.update_array, True,xdata, ydata, zdata, timestamp)
+                timestamp = self.count
+                reactor.callFromThread(FirstWindow.update_array, self, xdata, ydata, zdata, timestamp)
                 self.count += 1
-        except ValueError:
-            print("Donnée reçue invalide :", data)
-
+        except ValueError as e:
+            print(f"Invalid data received: {data} - Error: {e}")
 
 class DataReceiverFactory(protocol.Factory):
     def buildProtocol(self, addr):
@@ -104,7 +107,12 @@ class FirstWindow(Screen):
         self.call_time = 0
 
 
-    
+    line1 = None
+    line2 = None
+    line3 = None
+    min_index=0
+    max_index=0
+    current_xmax_refresh=None
 
     def update_status(self, status):
         Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
@@ -114,14 +122,25 @@ class FirstWindow(Screen):
 
     def update_array(self, xdata, ydata, zdata, timestamp):
         with lock:
-            
             x.append(xdata)
             y.append(ydata)
             z.append(zdata)
             time_x.append(timestamp)
+            
+            #self.max_index = timestamp
+            
+            
+            # Ensure the data window size does not exceed max_data_window
+            #  if len(x) > max_data_window:
+            #      x.pop(0)
+            #      y.pop(0)
+            #      z.pop(0)
+            #      time_x.pop(0)
 
             print(f"len x {len(x)}")
             print(f"len time {len(time_x)}")
+            
+            
                 
             
         
@@ -141,14 +160,9 @@ class FirstWindow(Screen):
 
     def on_enter(self):
         self.start_server()
-        #threading.Thread(target=self.reset_data_count, daemon=True).start()
+        threading.Thread(target=self.reset_data_count, daemon=True).start()
 
-    line1 = None
-    line2 = None
-    line3 = None
-    min_index=0
-    max_index=1
-    current_xmax_refresh=None
+    
 
     # initialisation du graphique
     def start_graph(self):
@@ -260,11 +274,11 @@ class FirstWindow(Screen):
                             self.mod_base += 1
                             
                             print(f"try {self.max_index} ")
-                            #print(f"try {self.current_xmax_refresh} ")
+                            
                         except:
                             self.current_xmax_refresh =  time_x[-1]
                             print(f"except{self.current_xmax_refresh}")
-                        # self.current_xmax_refresh = new_x[max_data_window]
+                        
                         self.figure_wgt.xmin = max_data_window * self.modulo(self.index)[0]
                         self.figure_wgt.xmax = max_data_window * (self.modulo(self.index)[0] + 1)
                         myfig=self.figure_wgt
@@ -296,7 +310,7 @@ class FirstWindow(Screen):
                 ax2.figure.canvas.flush_events()   
 
             self.max_index+=1 #increase step value (each frame, add 20 data)
-            
+        
             print(f"max_index {self.max_index}")
         else:
             Clock.unschedule(self.update_graph)
