@@ -1,3 +1,4 @@
+from kivy.uix.gridlayout import product
 import socket
 import threading
 from kivy.app import App
@@ -47,10 +48,10 @@ x = [] #np.random.uniform(-40, 40,200)
 y = [] #np.random.uniform(-40, 40,200)
 z = [] #np.random.uniform(-40, 40,200)
 time_x = [] #range(1,400) #int(time.time() * 1000)  # Temps en millisecondes
-max_data_window = 100
-ratio_data = 2
+max_data_window =500
+ratio_data = 3
 timestamps = {}
-
+add_count = 0
 # Décorateur pour exécuter une fonction dans un thread séparé
 def thread(function):
     def wrap(*args, **kwargs):
@@ -58,6 +59,15 @@ def thread(function):
         t.start()
         return t
     return wrap
+
+def activate_monitor_mode():
+    """Activate kivy monitor mode (get fps rate information in top bar)"""
+    from kivy.core.window import Window
+    from kivy.modules import Modules
+    from kivy.config import Config
+
+    Config.set('modules', 'monitor', '')        
+    Modules.activate_module('monitor',Window)
 
 class DataReceiver(protocol.Protocol):
     def __init__(self):
@@ -72,7 +82,7 @@ class DataReceiver(protocol.Protocol):
                     raise ValueError("Invalid data length")
                 xdata, ydata, zdata = map(int, values)
                 timestamp = self.count
-                reactor.callFromThread(FirstWindow.update_array, self, xdata, ydata, zdata, timestamp)
+                reactor.callFromThread(FirstWindow.update_array,  xdata, ydata, zdata, timestamp)
                 self.count += 1
         except ValueError as e:
             print(f"Invalid data received: {data} - Error: {e}")
@@ -105,6 +115,8 @@ class FirstWindow(Screen):
         self.server_thread = None
         self.running = False
         self.call_time = 0
+        self.add_index = 0
+        self.status_serv =False
 
 
     line1 = None
@@ -114,54 +126,58 @@ class FirstWindow(Screen):
     max_index=0
     current_xmax_refresh=None
 
+
     def update_status(self, status):
         Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
 
     def update_messages(self, message):
         Clock.schedule_once(lambda dt: self.ids.messages.setter('text')(self.ids.messages, self.ids.messages.text + message + "\n"))
 
-    def update_array(self, xdata, ydata, zdata, timestamp):
+    def update_array( xdata, ydata, zdata, timestamp):
+        global add_count
         with lock:
             x.append(xdata)
             y.append(ydata)
             z.append(zdata)
             time_x.append(timestamp)
             
-            #self.max_index = timestamp
-            
-            
-            # Ensure the data window size does not exceed max_data_window
-            #  if len(x) > max_data_window:
-            #      x.pop(0)
-            #      y.pop(0)
-            #      z.pop(0)
-            #      time_x.pop(0)
+            add_count += 1
+            if len(x) == 1000:
+                print(f"len time {len(time_x)}")
 
-            print(f"len x {len(x)}")
-            print(f"len time {len(time_x)}")
+            #print(f"add_count {add_count}")
             
-            
-                
+           
+      
             
         
     @thread
     def start_server(self):
-        reactor.listenTCP(8000, DataReceiverFactory())
-        reactor.run(installSignalHandlers=False)
+        if not self.status_serv:
+            self.status_serv = True
+            self.update_status("Server started.")
+            self.ids.status_server_button.text = "Stop Server"
+            self.server = reactor.listenTCP(8000, DataReceiverFactory())
+            reactor.run(installSignalHandlers=False)
+            
+        else:
+            
+            reactor.callFromThread(self.server.stopListening)
+            self.status_serv = False
+            self.update_status("[ARRÊT] Server stopped.")
+            self.ids.status_server_button.text = "Start Server"
+        
 
     def stop_server(self):
         """ Arrête proprement le serveur. """
-        global server
-        self.running = False  # Signale aux threads de s'arrêter
-        if server:
-            server.close()
-            server = None
+        if self.server:
+            self.server.stopListening()
+            self.server = None
         self.update_status("[ARRÊT] Server stopped.")
+        self.ids.status_server_button.text = "Start Server"
 
     def on_enter(self):
-        self.start_server()
-        #threading.Thread(target=self.reset_data_count, daemon=True).start()
-
+        activate_monitor_mode()
     
 
     # initialisation du graphique
@@ -180,13 +196,13 @@ class FirstWindow(Screen):
         # prune='lower' supprime la première graduation (la plus basse) pour éviter les chevauchements ou pour des raisons esthétiques.
         ax.xaxis.set_major_locator(MaxNLocator(prune='lower',nbins=5))
 
-
+        self.current_xmax_refresh = max_data_window
     
         xmin = 0
-        xmax = max_data_window
+        xmax = self.current_xmax_refresh
 
         #Bornes de l'axe des x et y
-        ax.set_xlim(xmin, xmax)
+        ax.set_xlim(xmin, self.current_xmax_refresh)
         ax.set_ylim(-40, 40)
 
         self.figure_wgt.figure = fig 
@@ -211,8 +227,8 @@ class FirstWindow(Screen):
         Clock.schedule_interval(self.update_graph,1/6)
 
     def update_graph(self, *args):
-
-        print(f" appel : {self.call_time}")
+        global add_count
+        #print(f" appel : {self.call_time}")
         self.call_time += 1
         
         with lock:
@@ -231,14 +247,15 @@ class FirstWindow(Screen):
         current_y2 = current_y2[:min_length]
         current_y3 = current_y3[:min_length]
 
-
+        self.max_index+= add_count
+        add_count = 0
         if not self.max_index > len(time_x):
 
             self.line1.set_data(current_x,current_y1)
             self.line2.set_data(current_x,current_y2)
             self.line3.set_data(current_x,current_y3)
 
-
+            
 
             if self.figure_wgt.axes.get_xlim()[0]==self.figure_wgt.xmin:
                 if len(current_x) != 0:
@@ -248,10 +265,10 @@ class FirstWindow(Screen):
                     self.last_plot_time = time.time()  # 
 
                     self.index += 1
-                    print(f"index {self.index}")
+                    #print(f"index {self.index}")
                     #print(f"mod {self.modulo(self.index)}")
                     
-                    if self.mod_base == self.modulo(self.index)[0]:           #self.current_xmax_refresh:   
+                    if current_x[-1]< self.current_xmax_refresh:            #self.current_xmax_refresh:   
 
                         myfig=self.figure_wgt
                         ax2=myfig.axes
@@ -272,16 +289,16 @@ class FirstWindow(Screen):
                         #update axis limit
                         
                         try:
-                            self.mod_base += 1
+                            xmin = self.current_xmax_refresh - max_data_window//ratio_data
+                            self.current_xmax_refresh = xmin + max_data_window 
                             
-                            print(f"try {self.max_index} ")
                             
                         except:
                             self.current_xmax_refresh =  time_x[-1]
-                            print(f"except{self.current_xmax_refresh}")
+                            #print(f"except{self.current_xmax_refresh}")
                         
-                        self.figure_wgt.xmin = max_data_window * self.modulo(self.index)[0]
-                        self.figure_wgt.xmax = max_data_window * (self.modulo(self.index)[0] + 1)
+                        self.figure_wgt.xmin = xmin
+                        self.figure_wgt.xmax = self.current_xmax_refresh 
                         myfig=self.figure_wgt
                         ax2=myfig.axes                     
                         myfig.background_patch_copy.set_visible(True)
@@ -310,16 +327,17 @@ class FirstWindow(Screen):
                 ax2.figure.canvas.blit(ax2.bbox)
                 ax2.figure.canvas.flush_events()   
 
-            self.max_index+=1 #increase step value (each frame, add 20 data)
+
+             #increase step value (each frame, add 20 data)
         
-            print(f"max_index {self.max_index}")
+            #print(f"max_index {self.max_index}")
         else:
             Clock.unschedule(self.update_graph)
             myfig=self.figure_wgt          
             myfig.xmin = 0#if double-click, show all data   
 
-        if self.index == 500:
-            self.print_plot_times()
+        #if self.index == 500:
+        #    self.print_plot_times()
 
     def print_plot_times(self):
         if self.first_plot_time is not None and self.last_plot_time is not None:
@@ -333,8 +351,8 @@ class FirstWindow(Screen):
 
     def reset_data_count(self):
         while True:
-            print(f"Data per second: {self.data_count}")
-            self.data_count = 0  # Réinitialiser le compteur
+            print(f"Data per second: {self.add_index}")
+            #self.add_index = 0  # Réinitialiser le compteur
             time.sleep(1)
 
 

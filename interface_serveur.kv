@@ -7,9 +7,17 @@ WindowManager:
     figure_wgt:figure_wgt
     GridLayout:
         cols: 1
+        spacing: 10
+        padding: 10
+        Label:
+            text: ""
+            size_hint_y: None
+            height: 30
+            
+
         Label:
             id: status_label
-            text: "[STARTING] Server is starting..."
+            text: "Server is stopped, click 'Start server' to start it"
             size_hint_y: None
             height: 50
 
@@ -19,26 +27,45 @@ WindowManager:
             size_hint_y: None
             height: 50
 
+        BoxLayout:
+            orientation: 'horizontal'
+            spacing: 10
+            size_hint_y: None
+            Button:
+                id: status_server_button
+                text: "Start server"
+                on_press: root.start_server()
+                size_hint_y: None
+                height: 50
 
-        
+            Button:
+                text: "Start graph"
+                #on_press: root.start_server()
+                size_hint_y: None
+                height: 50
+            
         BoxLayout:
             orientation:'vertical'
             BoxLayout:
-                size_hint_y:0.2
+                spacing: 5
+                size_hint_y:None
                 Button:
                     text:"home"
                     on_press: root.start_graph()
                     on_release:root.home()
+                    height: 50
                 ToggleButton:
                     group:'touch_mode'
                     state:'down'
                     text:"pan" 
+                    height: 50
                     on_press:
                         root.set_touch_mode('pan')
                         self.state='down'
                 ToggleButton:
                     group:'touch_mode'
                     text:"zoom box"  
+                    height: 50
                     on_press:
                         root.set_touch_mode('zoombox')
                         self.state='down'  
@@ -49,11 +76,7 @@ WindowManager:
         
 
                 
-        Button:
-            text: "Stop server"
-            on_press: root.stop_server()
-            size_hint_y: None
-            height: 50
+        
         
         Button:
             text: "Go to Second Window"
