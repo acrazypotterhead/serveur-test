@@ -1,5 +1,4 @@
 from kivy.uix.gridlayout import product
-import socket
 import threading
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -15,6 +14,9 @@ import numpy as np
 import time as time
 from twisted.internet import reactor, protocol
 import random
+import csv
+import os
+from widgets import Jauge
 
 import logging
 logging.getLogger('matplotlib.font_manager').disabled = True
@@ -28,30 +30,19 @@ mpl.rcParams['path.simplify_threshold'] = 1.0
 mpl.rcParams['agg.path.chunksize'] = 1000
 
 
-# Configuration du serveur
-
-HEADER = 64
-PORT = 5050
-SERVER = "192.168.5.27"  # Vérifie bien cette adresse IP
-ADDR = (SERVER, PORT)
-FORMAT = "utf-8"
-DISCONNECT_MESSAGE = "!DISCONNECT"
 
 server = None
 lock = threading.Lock()
 
-count_index = 0
-
-#time_x = range(1,200) #int(time.time() * 1000)  # Temps en millisecondes
-
-x = [] #np.random.uniform(-40, 40,200)
-y = [] #np.random.uniform(-40, 40,200)
-z = [] #np.random.uniform(-40, 40,200)
-time_x = [] #range(1,400) #int(time.time() * 1000)  # Temps en millisecondes
-max_data_window =500
+add_count = 0
+x = [] 
+y = [] 
+z = [] 
+time_x = [] 
+max_data_window =10000
 ratio_data = 3
 timestamps = {}
-add_count = 0
+
 # Décorateur pour exécuter une fonction dans un thread séparé
 def thread(function):
     def wrap(*args, **kwargs):
@@ -60,8 +51,9 @@ def thread(function):
         return t
     return wrap
 
+#Activer le mode moniteur de Kivy (obtenir des informations sur le taux de FPS dans la barre supérieure)
 def activate_monitor_mode():
-    """Activate kivy monitor mode (get fps rate information in top bar)"""
+    
     from kivy.core.window import Window
     from kivy.modules import Modules
     from kivy.config import Config
@@ -69,35 +61,62 @@ def activate_monitor_mode():
     Config.set('modules', 'monitor', '')        
     Modules.activate_module('monitor',Window)
 
+
+
+# DataReceiver est une classe qui hérite de protocol.Protocol et est responsable de la réception et du traitement des données.
+# Attributs:
+#     start_time (int): L'heure de début en millisecondes.
+#     parent (objet): L'objet parent qui contient l'attribut paused.
+#     count (int): Un compteur pour suivre le nombre de paquets de données reçus.
+# Méthodes:
+#     dataReceived(data):
+#         Reçoit des données, les décode et met à jour le tableau dans la classe FirstWindow si le parent n'est pas en pause.
+#         Si les données sont invalides, elle affiche un message d'erreur.
+
 class DataReceiver(protocol.Protocol):
-    def __init__(self):
+    
+    def __init__(self, start_time, parent):
         super().__init__()
         self.count = 0
+        self.start_time = start_time
+        self.parent = parent
 
     def dataReceived(self, data):
+        if self.parent.paused:
+
+            return
+        
         try:
             with lock:
                 values = data.decode("utf-8").strip().split(',')
                 if len(values) != 3:
                     raise ValueError("Invalid data length")
                 xdata, ydata, zdata = map(int, values)
-                timestamp = self.count
-                reactor.callFromThread(FirstWindow.update_array,  xdata, ydata, zdata, timestamp)
+                current_time = int(time.time()*1000) #self.count
+                elapsed_time = current_time - self.start_time
+                reactor.callFromThread(FirstWindow.update_array,  xdata, ydata, zdata, elapsed_time)
                 self.count += 1
         except ValueError as e:
             print(f"Invalid data received: {data} - Error: {e}")
 
+
+# DataReceiverFactory est une classe qui hérite de protocol.Factory et est responsable de la création d'instances de DataReceiver.
+# Attributs:
+#     start_time (int): L'heure de début en millisecondes.
+#     parent (objet): L'objet parent qui contient l'attribut paused.
+# Méthodes:
+#     buildProtocol(addr):
+#         Crée et retourne une instance de DataReceiver avec l'heure de début et le parent spécifiés.
+
 class DataReceiverFactory(protocol.Factory):
+    def __init__(self, start_time, parent):
+        self.start_time = start_time
+        self.parent = parent
+
     def buildProtocol(self, addr):
-        return DataReceiver()
+        return DataReceiver(self.start_time, self.parent)
 
 
-def activate_monitor_mode():
-    from kivy.core.window import Window
-    from kivy.modules import Modules
-    from kivy.config import Config
-    Config.set('modules', 'monitor', '')
-    Modules.activate_module('monitor', Window)
 
 class FirstWindow(Screen):
 
@@ -118,6 +137,14 @@ class FirstWindow(Screen):
         self.add_index = 0
         self.status_serv =False
 
+        self.paused = False
+        self.pause_deferred = None
+
+        # Définir le chemin du dossier où sauvegarder les données et les graphiques
+        self.save_directory = "saved_data"
+        # Créer le dossier s'il n'existe pas
+        os.makedirs(self.save_directory, exist_ok=True)
+
 
     line1 = None
     line2 = None
@@ -130,8 +157,7 @@ class FirstWindow(Screen):
     def update_status(self, status):
         Clock.schedule_once(lambda dt: self.ids.status_label.setter('text')(self.ids.status_label, status))
 
-    def update_messages(self, message):
-        Clock.schedule_once(lambda dt: self.ids.messages.setter('text')(self.ids.messages, self.ids.messages.text + message + "\n"))
+
 
     def update_array( xdata, ydata, zdata, timestamp):
         global add_count
@@ -142,43 +168,108 @@ class FirstWindow(Screen):
             time_x.append(timestamp)
             
             add_count += 1
-            if len(x) == 1000:
-                print(f"len time {len(time_x)}")
+            #if len(x) == 200:
+            #    print(f"len time {len(time_x)}")
+            #    print(f"time {time_x}")
 
             #print(f"add_count {add_count}")
+
             
            
-      
+     
+
+    def save_graph_and_data(self):
+        if self.figure_wgt.figure:
+            """Sauvegarde le graphe sous forme d'image et les données en CSV."""
+            # Chemins complets des fichiers
+            graph_path = os.path.join(self.save_directory, self.ids.file_name_input.text + ".png")
+            csv_path = os.path.join(self.save_directory, self.ids.file_name_input.text + ".csv")
+            # Sauvegarde du graphe en image
+            self.figure_wgt.figure.savefig(graph_path)
+            
+            
+            # Sauvegarde des données en CSV
+            with open(csv_path, mode="w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(["Timestamp", "X", "Y", "Z"])  # En-têtes du CSV
+                for i in range(len(time_x)):
+                    writer.writerow([time_x[i], x[i], y[i], z[i]])
+            
+            
+        else:
+            print("Aucun graphique à sauvegarder.")
+
             
         
     @thread
     def start_server(self):
-        if not self.status_serv:
+        
+        if self.status_serv == False:
+      
             self.status_serv = True
             self.update_status("Server started.")
             self.ids.status_server_button.text = "Stop Server"
-            self.server = reactor.listenTCP(8000, DataReceiverFactory())
-            reactor.run(installSignalHandlers=False)
+            self.start_time = int(time.time() * 1000)   
+            
+            self.server = reactor.listenTCP(8000, DataReceiverFactory(self.start_time, self))
+
+            if not reactor.running:
+                reactor.run(installSignalHandlers=False)
             
         else:
             
-            reactor.callFromThread(self.server.stopListening)
-            self.status_serv = False
-            self.update_status("[ARRÊT] Server stopped.")
-            self.ids.status_server_button.text = "Start Server"
+            self.stop_server()
+
+        
         
 
     def stop_server(self):
         """ Arrête proprement le serveur. """
-        if self.server:
-            self.server.stopListening()
-            self.server = None
-        self.update_status("[ARRÊT] Server stopped.")
-        self.ids.status_server_button.text = "Start Server"
+        try:
+            if self.server:
+                self.server.stopListening()
+                self.server = None  
+        
+            
+            self.update_status("[ARRÊT] Server stopped.")
+            reactor.stop()
+        except:
+            self.update_status("[ARRÊT] Server already stopped. Relaunch the application.")
+            
+
+
+    def toggle_pause_resume(self):
+        """ Met en pause ou reprend la réception des données. """
+        if self.paused:
+            self.paused = False
+            Clock.unschedule(self.update_graph)
+            #self.reset_graph()
+            self.update_status("[EN COURS] Server resumed.")
+            self.ids.pause_resume_button.text = "Pause Reception"
+            self.start_time = int(time.time() * 1000)
+        else:
+            self.paused = True
+            
+            self.update_status("[PAUSE] Server paused.")
+            self.ids.pause_resume_button.text = "Resume Reception"
+
+       
 
     def on_enter(self):
         activate_monitor_mode()
     
+    def reset_graph(self):
+        """Réinitialise les données et l'affichage du graphique"""
+        global x, y, z, time_x
+        with lock:
+            x.clear()
+            y.clear()
+            z.clear()
+            time_x.clear()
+        
+        self.start_graph()
+
+        
 
     # initialisation du graphique
     def start_graph(self):
@@ -230,7 +321,12 @@ class FirstWindow(Screen):
         global add_count
         #print(f" appel : {self.call_time}")
         self.call_time += 1
-        
+
+        #if len(time_x) > 0:
+        #    xmin = time_x[-1] - max_data_window * 100  # 🕒 Garde une plage de X millisecondes
+        #    xmax = time_x[-1]  # 🕒 Met à jour xmax avec le dernier timestamp reçu
+        #    self.figure_wgt.axes.set_xlim(xmin, xmax)
+
         with lock:
             current_x = time_x[self.min_index:self.max_index]
             current_y1 = x[self.min_index:self.max_index] 

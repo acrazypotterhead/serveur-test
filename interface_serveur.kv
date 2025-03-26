@@ -19,30 +19,50 @@ WindowManager:
             id: status_label
             text: "Server is stopped, click 'Start server' to start it"
             size_hint_y: None
-            height: 50
+            height: 30
 
-        TextInput:
-            id: messages
-            readonly: True
-            size_hint_y: None
-            height: 50
 
         BoxLayout:
             orientation: 'horizontal'
             spacing: 10
             size_hint_y: None
+
+            BoxLayout:
+                orientation: 'vertical'
+                Button:
+                    id: status_server_button
+                    text: "Start server"
+                    on_press: root.start_server()
+                    size_hint_y: None
+                    height: 50
+
+                Button:
+                    id: pause_resume_button
+                    text: "Pause Reception"
+                    on_press: root.toggle_pause_resume()
+                    size_hint_y: None
+                    height: 50
+
             Button:
-                id: status_server_button
-                text: "Start server"
-                on_press: root.start_server()
+                text: "Start graph"
+                on_press: root.reset_graph()
                 size_hint_y: None
                 height: 50
 
             Button:
-                text: "Start graph"
-                #on_press: root.start_server()
+                text: "Sauvegarder Graph"
+                on_release: root.save_graph_and_data()
                 size_hint_y: None
                 height: 50
+
+            TextInput:
+                id: file_name_input
+                text: ""
+                size_hint_y: None
+                height: 50
+
+
+            
             
         BoxLayout:
             orientation:'vertical'
@@ -93,6 +113,15 @@ WindowManager:
         cols: 1
         Label: 
             text: "Second Window"
+        
+        Jauge:
+            id: Jauge1
+            size_hint: 1,1
+            choice: "x"
+            min_value: -100
+            max_value: 100
+
+
 
         Button:
             text: "Go to First Window"
