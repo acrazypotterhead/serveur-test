@@ -209,7 +209,7 @@ class FirstWindow(Screen):
             self.status_serv = True
             self.update_status("Server started.")
             self.ids.status_server_button.text = "Stop Server"
-            self.start_time = int(time.time() * 1000)   
+            self.start_time = int(time.time() * 1000)
             
             self.server = reactor.listenTCP(8000, DataReceiverFactory(self.start_time, self))
 
@@ -260,16 +260,17 @@ class FirstWindow(Screen):
     
     def reset_graph(self):
         """Réinitialise les données et l'affichage du graphique"""
-        global x, y, z, time_x
-        with lock:
-            x.clear()
-            y.clear()
-            z.clear()
-            time_x.clear()
-        
-        self.start_graph()
+        #global x, y, z, time_x
+        #with lock:
+        #    x.clear()
+        #    y.clear()
+        #    z.clear()
+        #    time_x.clear()
+        #
+        #self.start_graph()
 
-        
+        if server:
+            print ("server is running")
 
     # initialisation du graphique
     def start_graph(self):
