@@ -18,74 +18,74 @@ WindowManager:
         Label:
             id: status_label
             text: "Server is stopped, click 'Start server' to start it"
-            size_hint_y: None
-            height: 30
+            size_hint_y: 0.1
+            #height: 30
 
 
         BoxLayout:
             orientation: 'horizontal'
             spacing: 10
-            size_hint_y: None
+            size_hint_y: 0.15
 
             BoxLayout:
                 orientation: 'vertical'
+
                 Button:
                     id: status_server_button
                     text: "Start server"
                     on_press: root.start_server()
-                    size_hint_y: None
-                    height: 50
+                    #size_hint_y: None
+                    #height: 50
 
                 Button:
                     id: pause_resume_button
                     text: "Pause Reception"
                     on_press: root.toggle_pause_resume()
-                    size_hint_y: None
-                    height: 50
+                    #size_hint_y: None
+                    #height: 50
 
             Button:
                 text: "Start graph"
                 on_press: root.reset_graph()
-                size_hint_y: None
-                height: 50
+                #size_hint_y: None
+                #height: 50
 
             Button:
                 text: "Sauvegarder Graph"
                 on_release: root.save_graph_and_data()
-                size_hint_y: None
-                height: 50
+        
 
             TextInput:
                 id: file_name_input
                 text: ""
-                size_hint_y: None
-                height: 50
+              
 
 
             
             
         BoxLayout:
             orientation:'vertical'
+            size_hint_y: 0.15
             BoxLayout:
                 spacing: 5
-                size_hint_y:None
+                #size_hint_y:None
                 Button:
                     text:"home"
                     on_press: root.start_graph()
                     on_release:root.home()
-                    height: 50
+                    #height: 50
                 ToggleButton:
                     group:'touch_mode'
                     state:'down'
                     text:"pan" 
-                    height: 50
+                    #height: 50
                     on_press:
                         root.set_touch_mode('pan')
                         self.state='down'
                 ToggleButton:
                     group:'touch_mode'
                     text:"zoom box"  
-                    height: 50
+                    #height: 50
                     on_press:
                         root.set_touch_mode('zoombox')
                         self.state='down'  
@@ -100,8 +100,8 @@ WindowManager:
         
         Button:
             text: "Go to Second Window"
-            size_hint_y: None
-            height: 50
+            size_hint_y: 0.05
+            #height: 50
             on_press:
                 root.manager.current = 'second'
                 root.manager.transition.direction = 'left'

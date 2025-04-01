@@ -85,6 +85,10 @@ class DataReceiver(protocol.Protocol):
         if self.parent.paused:
 
             return
+        elif self.parent.paused == False:
+            self.parent.paused = None
+            self.start_time = int(time.time() * 1000) 
+            print(f"start time after paused {self.start_time}")
         
         try:
             with lock:
@@ -137,7 +141,7 @@ class FirstWindow(Screen):
         self.add_index = 0
         self.status_serv =False
 
-        self.paused = False
+        self.paused = None
         self.pause_deferred = None
 
         # Définir le chemin du dossier où sauvegarder les données et les graphiques
@@ -210,6 +214,7 @@ class FirstWindow(Screen):
             self.update_status("Server started.")
             self.ids.status_server_button.text = "Stop Server"
             self.start_time = int(time.time() * 1000)
+            print(f"start time {self.start_time}")
             
             self.server = reactor.listenTCP(8000, DataReceiverFactory(self.start_time, self))
 
@@ -247,7 +252,7 @@ class FirstWindow(Screen):
             self.update_status("[EN COURS] Server resumed.")
             self.ids.pause_resume_button.text = "Pause Reception"
             self.start_time = int(time.time() * 1000)
-        else:
+        elif self.paused == False or self.paused == None:
             self.paused = True
             
             self.update_status("[PAUSE] Server paused.")
@@ -260,14 +265,14 @@ class FirstWindow(Screen):
     
     def reset_graph(self):
         """Réinitialise les données et l'affichage du graphique"""
-        #global x, y, z, time_x
-        #with lock:
-        #    x.clear()
-        #    y.clear()
-        #    z.clear()
-        #    time_x.clear()
-        #
-        #self.start_graph()
+        global x, y, z, time_x
+        with lock:
+            x.clear()
+            y.clear()
+            z.clear()
+            time_x.clear()
+        
+        self.start_graph()
 
         if server:
             print ("server is running")
