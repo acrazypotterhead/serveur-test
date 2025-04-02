@@ -93,6 +93,7 @@ class DataReceiver(protocol.Protocol):
         try:
             with lock:
                 values = data.decode("utf-8").strip().split(',')
+
                 if len(values) != 3:
                     raise ValueError("Invalid data length")
                 xdata, ydata, zdata = map(int, values)
