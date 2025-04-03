@@ -17,6 +17,8 @@ import random
 import csv
 import os
 from widgets import Jauge
+from kivy.animation import Animation
+
 
 import logging
 logging.getLogger('matplotlib.font_manager').disabled = True
@@ -149,7 +151,11 @@ class FirstWindow(Screen):
         self.save_directory = "saved_data"
         # Créer le dossier s'il n'existe pas
         os.makedirs(self.save_directory, exist_ok=True)
+        Clock.schedule_interval(self.update_fps, 1 / 10)
 
+    def update_fps(self, dt):
+        fps = Clock.get_fps()
+        self.ids.fps_label.text = f"FPS: {fps:.1f}"
 
     line1 = None
     line2 = None
@@ -180,7 +186,7 @@ class FirstWindow(Screen):
             #print(f"add_count {add_count}")
 
             
-           
+    
      
 
     def save_graph_and_data(self):
@@ -261,8 +267,8 @@ class FirstWindow(Screen):
 
        
 
-    def on_enter(self):
-        activate_monitor_mode()
+    #def on_enter(self):
+    #    #activate_monitor_mode()
     
     def reset_graph(self):
         """Réinitialise les données et l'affichage du graphique"""
@@ -470,6 +476,7 @@ class WindowManager(ScreenManager):
 class ServerApp(App):
     def build(self):
         return Builder.load_file("interface_serveur.kv")
+    
 
 
 if __name__ == "__main__":

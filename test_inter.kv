@@ -1,0 +1,62 @@
+<MainScreen>:
+    orientation: 'vertical'
+    padding: 10
+    spacing: 10
+    canvas.before:
+        Color:
+            rgba: 0.96, 0.96, 0.96, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    Label:
+        id: status_label
+        text: "❌ Server Stopped"
+        font_size: '24sp'
+        color: 1, 0, 0, 1
+        size_hint_y: None
+        height: 40
+        halign: 'center'
+
+    GridLayout:
+        cols: 2
+        size_hint_y: None
+        height: self.minimum_height
+        spacing: 10
+        Button:
+            text: "⏺ Start Server"
+            on_press: root.start_server()
+        Button:
+            text: "⏸ Stop Server"
+            on_press: root.stop_server()
+        Button:
+            text: "▶ Start Graph"
+        Button:
+            text: "💾 Save Graph"
+
+    BoxLayout:
+        size_hint_y: None
+        height: 40
+        spacing: 10
+        Button:
+            text: "🏠 Home"
+        Button:
+            text: "✋ Pan"
+        Button:
+            text: "🔍 Zoom"
+
+    BoxLayout:
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        Label:
+            text: "Graphique ici"
+            color: 0, 0, 0, 1
+
+    Button:
+        text: "➡ Aller à la deuxième page"
+        size_hint_y: None
+        height: 40
